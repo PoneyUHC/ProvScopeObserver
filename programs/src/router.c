@@ -141,20 +141,20 @@ int main(int argc, char *argv[])
 
 
     int err;
-    err = open_fifo(argv[1], &g_in_fd);
+    err = open_fifo(argv[1], &g_in_fd, O_RDONLY);
     if(err){
         printf("Could not open fifo %s\n", argv[1]);
         cleanup(argv);
         return 2;
     }
     
-    err = open_fifo(argv[2], g_out_fd);
+    err = open_fifo(argv[2], g_out_fd, O_WRONLY | O_CREAT);
     if(err){
         printf("Could not open fifo %s\n", argv[2]);
         cleanup(argv);
         return 2;
     }
-    err = open_fifo(argv[3], g_out_fd+1);
+    err = open_fifo(argv[3], g_out_fd+1, O_WRONLY | O_CREAT);
     if(err){
         printf("Could not open fifo %s\n", argv[3]);
         cleanup(argv);

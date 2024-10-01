@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 
 
     int err;
-    err = open_fifo(argv[1], &g_in_fd);
+    err = open_fifo(argv[1], &g_in_fd, O_RDONLY);
     if(err){
         printf("Could not open fifo %s\n", argv[1]);
         cleanup(argv);

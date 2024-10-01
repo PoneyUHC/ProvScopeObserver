@@ -24,9 +24,13 @@ int send_message(int destination)
 {
     switch(destination){
         case 0:
+            printf("Sending message to router\n");
+            printf("Router has fd = %d\n", g_router_fd);
             write(g_router_fd, g_out_buffer, g_buffer_size);
             break;
         case 1:
+            printf("Sending message to log collector\n");
+            printf("Log collector has fd = %d\n", g_log_collector_fd);
             write(g_log_collector_fd, g_out_buffer, g_buffer_size);
             break;
         default:
@@ -52,7 +56,7 @@ int choose_target()
 void input_message()
 {
     printf("Input your message:\n");
-    read(STDIN_FILENO, g_out_buffer, OUT_BUFFER_MAX_SIZE);
+    g_buffer_size = read(STDIN_FILENO, g_out_buffer, OUT_BUFFER_MAX_SIZE);
 }
 
 
@@ -93,14 +97,14 @@ int main(int argc, char *argv[])
 
 
     int err;
-    err = open_fifo(argv[1], &g_router_fd);
+    err = open_fifo(argv[1], &g_router_fd, O_WRONLY);
     if(err){
         printf("Could not open fifo %s\n", argv[1]);
         cleanup(argv);
         return 2;
     }
     
-    err = open_fifo(argv[2], &g_log_collector_fd);
+    err = open_fifo(argv[2], &g_log_collector_fd, O_WRONLY);
     if(err){
         printf("Could not open fifo %s\n", argv[2]);
         cleanup(argv);
