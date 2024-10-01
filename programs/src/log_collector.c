@@ -11,14 +11,14 @@
 
 
 #define PATH_MAX_LEN 256
-#define IN_BUFFER_MAX_SIZE 512
+#define OUT_BUFFER_MAX_SIZE 512
 #define PARSE_BUFFER_SIZE 1024
 
 static int g_in_fd;
 static int g_log_fd;
 static int g_goal_fd;
 
-static char g_in_buffer[IN_BUFFER_MAX_SIZE];
+static char g_in_buffer[OUT_BUFFER_MAX_SIZE];
 static int g_buffer_size = 0;
 
 static char g_parse_buffer[PARSE_BUFFER_SIZE];
@@ -29,34 +29,22 @@ static int write_timer = 10;
 static int last_read_date = 0;
 static int last_write_date = 0;
 
-
-int handle_input()
-{
-    if(g_buffer_size != 5 || strcmp(g_in_buffer, "foup") != 0){
-        return 1;
-    } 
-    
-    return API_read_and_parse();
-}
-
-
 // format of log file is 'src,dest,msg\n' on each line 
 int API_read_and_parse(){
     g_parse_buffer_size = 0;
     char c;
     int n_read;
-    int total_read = 0;
     while(1){
         n_read = read(g_log_fd, &c, 1);
         if(!n_read ){
             break;
         }
 
-        if(c == ","){
+        if(c == ','){
             c = ' ';
         }
 
-        write(g_parse_buffer+g_parse_buffer_size, &c, 1);
+        g_parse_buffer[g_parse_buffer_size] = c;
         g_parse_buffer_size += 1;
 
         if(g_parse_buffer_size >= PARSE_BUFFER_SIZE){
@@ -74,6 +62,16 @@ void write_to_goal()
 }
 
 
+int handle_input()
+{
+    if(g_buffer_size != 5 || strcmp(g_in_buffer, "foup") != 0){
+        return 1;
+    } 
+    
+    return API_read_and_parse();
+}
+
+
 void loop()
 {
     int err;
@@ -81,7 +79,7 @@ void loop()
     while(1){
         
         printf("Reading input fifo\n");
-        g_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
+        g_buffer_size = read(g_in_fd, g_in_buffer, OUT_BUFFER_MAX_SIZE);
         if(g_buffer_size == -1){
             printf("Error on read\n");
             sleep(1);
@@ -98,7 +96,7 @@ void loop()
         int actual_date = time(NULL);
         if(actual_date - last_read_date > read_timer){
             last_read_date = actual_date;
-            read_and_parse();
+            API_read_and_parse();
         }
 
         if(actual_date - last_write_date > write_timer){
