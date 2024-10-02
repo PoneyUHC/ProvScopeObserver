@@ -19,7 +19,7 @@ static int g_log_fd;
 static int g_goal_fd;
 
 static char g_in_buffer[OUT_BUFFER_MAX_SIZE];
-static int g_buffer_size = 0;
+static int g_out_buffer_size = 0;
 
 static char g_parse_buffer[PARSE_BUFFER_SIZE];
 static int g_parse_buffer_size = 0;
@@ -64,7 +64,7 @@ void write_to_goal()
 
 int handle_input()
 {
-    if(g_buffer_size != 5 || strcmp(g_in_buffer, "foup") != 0){
+    if(g_out_buffer_size != 5 || strcmp(g_in_buffer, "foup") != 0){
         return 1;
     } 
     
@@ -79,8 +79,8 @@ void loop()
     while(1){
         
         printf("Reading input fifo\n");
-        g_buffer_size = read(g_in_fd, g_in_buffer, OUT_BUFFER_MAX_SIZE);
-        if(g_buffer_size == -1){
+        g_out_buffer_size = read(g_in_fd, g_in_buffer, OUT_BUFFER_MAX_SIZE);
+        if(g_out_buffer_size == -1){
             printf("Error on read\n");
             sleep(1);
             continue;

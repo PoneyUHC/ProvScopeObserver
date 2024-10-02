@@ -16,7 +16,23 @@ static int g_router_fd;
 static int g_log_collector_fd;
 
 static char g_out_buffer[OUT_BUFFER_MAX_SIZE];
-static int g_buffer_size;
+static int g_out_buffer_size;
+
+
+int send_message_to_router()
+{
+    printf("Router function selector: \n");
+    scanf("%d", (int*) g_out_buffer);
+    g_out_buffer_size += 4;
+
+    if((int) g_out_buffer[0] == 0)
+    printf("Destination to reach: \n");
+    scanf("%d", (int*) &g_out_buffer[4]);
+    printf("Sending message to router\n");
+    
+    int n_writen = write(g_router_fd, g_out_buffer, g_out_buffer_size);
+    return n_writen > 0;
+}
 
 
 
@@ -24,14 +40,10 @@ int send_message(int destination)
 {
     switch(destination){
         case 0:
-            printf("Sending message to router\n");
-            printf("Router has fd = %d\n", g_router_fd);
-            write(g_router_fd, g_out_buffer, g_buffer_size);
-            break;
+            return send_message_to_router();
         case 1:
             printf("Sending message to log collector\n");
-            printf("Log collector has fd = %d\n", g_log_collector_fd);
-            write(g_log_collector_fd, g_out_buffer, g_buffer_size);
+            write(g_log_collector_fd, g_out_buffer, g_out_buffer_size);
             break;
         default:
             printf("Wrong destination\n");
@@ -53,19 +65,11 @@ int choose_target()
 }
 
 
-void input_message()
-{
-    printf("Input your message:\n");
-    g_buffer_size = read(STDIN_FILENO, g_out_buffer, OUT_BUFFER_MAX_SIZE);
-}
-
-
 void loop()
 {
     while(1){
         
         int target = choose_target();
-        (void) input_message();
         (void) send_message(target);
     }
 }

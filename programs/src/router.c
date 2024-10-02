@@ -11,6 +11,7 @@
 
 #define PATH_MAX_LEN 256
 #define IN_BUFFER_MAX_SIZE 512
+#define LOG_BUFFER_SIZE 512
 
 static int g_STATE_destination;
 
@@ -21,41 +22,44 @@ static int g_out_fd[N_DESTINATION];
 static int g_log_fd;
 
 static char g_in_buffer[IN_BUFFER_MAX_SIZE];
-static int g_buffer_size;
+static int g_out_buffer_size;
+
+static char g_log_buffer[LOG_BUFFER_SIZE];
 
 
 int API_select_destination()
 {
-    if(g_buffer_size < 8){
+    if(g_out_buffer_size < 8){
         printf("no destination selection specified, aborting parsing\n");
         return 1;
     }
 
     g_STATE_destination = (int) *(g_in_buffer+4);
+    printf("Destination set to %d\n", g_STATE_destination);
     return 0;
 }
 
 
 int API_send_message()
 {
-    switch(g_STATE_destination){
-        case 0:
-            write(g_out_fd[0], g_in_buffer, g_buffer_size);
-            break;
-        case 1:
-            write(g_out_fd[1], g_in_buffer, g_buffer_size);
-            break;
-        default:
-            printf("Wrong destination\n");
-            return 1;
+    if(g_STATE_destination != 0 && g_STATE_destination != 1){
+        printf("Wrong destination\n");
+        return 1;
     }
+    
+    printf("Sending message to %d\n", g_STATE_destination);
+    write(g_out_fd[g_STATE_destination], g_in_buffer, g_out_buffer_size);
+
+    sprintf(g_log_buffer, "%d,%d,%s\n", 2, g_STATE_destination, &g_in_buffer[4]);
+    write(g_log_fd, g_log_buffer, 4 + g_out_buffer_size - 4);
+    
     return 0;
 }
 
 
 int parse_API_function_selection(int *out_selected)
 {
-    if(g_buffer_size < 4){
+    if(g_out_buffer_size < 4){
         printf("no api function specified, aborting parsing\n");
         return -1;
     }
@@ -86,8 +90,8 @@ void loop()
     while(1){
         
         printf("Reading input fifo\n");
-        g_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
-        if(g_buffer_size == -1){
+        g_out_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
+        if(g_out_buffer_size == -1){
             printf("Error on read\n");
             sleep(1);
             continue;

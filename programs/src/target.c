@@ -15,7 +15,7 @@
 static int g_in_fd;
 
 static char g_in_buffer[IN_BUFFER_MAX_SIZE];
-static int g_buffer_size;
+static int g_out_buffer_size;
 
 
 
@@ -24,8 +24,8 @@ void loop()
     while(1){
         
         printf("Reading input fifo\n");
-        g_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
-        if(g_buffer_size == -1){
+        g_out_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
+        if(g_out_buffer_size == -1){
             printf("Error on read\n");
             sleep(1);
             continue;
