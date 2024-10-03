@@ -31,26 +31,35 @@ static int last_write_date = 0;
 
 // format of log file is 'src,dest,msg\n' on each line 
 int API_read_and_parse(){
-    g_parse_buffer_size = 0;
     char c;
     int n_read;
+    int new_content = 0;
     while(1){
         n_read = read(g_log_fd, &c, 1);
         if(!n_read ){
             break;
         }
 
+        new_content = 1;
+
         if(c == ','){
             c = ' ';
         }
 
         g_parse_buffer[g_parse_buffer_size] = c;
-        g_parse_buffer_size += 1;
+        ++g_parse_buffer_size;
 
         if(g_parse_buffer_size >= PARSE_BUFFER_SIZE){
             return 1;
         }
     }
+
+    if(!new_content){
+        return 0;
+    }
+
+    printf("Content of buffer after parsing :");
+    printf("%s\n", g_parse_buffer);
 
     return 0;
 }
@@ -58,13 +67,19 @@ int API_read_and_parse(){
 
 void write_to_goal()
 {
+    printf("Writing '%s' to goal\n", g_parse_buffer);
     write(g_goal_fd, g_parse_buffer, g_parse_buffer_size);
+
+    memset(g_parse_buffer, 0, PARSE_BUFFER_SIZE);
+    g_parse_buffer_size = 0;
 }
 
 
 int handle_input()
 {
+    printf("Received message %s\n", g_in_buffer);
     if(g_out_buffer_size != 5 || strcmp(g_in_buffer, "foup") != 0){
+        printf("Message not recognized\n");
         return 1;
     } 
     
@@ -76,31 +91,34 @@ void loop()
 {
     int err;
 
+    int flags = fcntl(g_in_fd, F_GETFL, 0);
+    fcntl(g_in_fd, F_SETFL, flags | O_NONBLOCK);
+
     while(1){
         
         printf("Reading input fifo\n");
         g_out_buffer_size = read(g_in_fd, g_in_buffer, OUT_BUFFER_MAX_SIZE);
-        if(g_out_buffer_size == -1){
-            printf("Error on read\n");
-            sleep(1);
-            continue;
-        }
 
-        err = handle_input();
-        if(err){
-            printf("Message not recognized\n");
+        if(g_out_buffer_size != -1){
+            err = handle_input();
+            if(err){
+                sleep(1);
+            }
+        } else {
+            printf("Nothing to read\n");
             sleep(1);
-            continue;
         }
 
         int actual_date = time(NULL);
         if(actual_date - last_read_date > read_timer){
             last_read_date = actual_date;
+            printf("Read timer expired, reading and parsing log file\n");
             API_read_and_parse();
         }
 
         if(actual_date - last_write_date > write_timer){
             last_write_date = actual_date;
+            printf("Write timer expired, writing parsed data to goal\n");
             write_to_goal();
         }
     }

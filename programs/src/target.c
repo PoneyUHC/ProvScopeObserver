@@ -25,11 +25,12 @@ void loop()
         
         printf("Reading input fifo\n");
         g_out_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
-        if(g_out_buffer_size == -1){
+        if(g_out_buffer_size == -1 || g_out_buffer_size == 0){
             printf("Error on read\n");
             sleep(1);
             continue;
         }
+        printf("Received message '%s'\n", g_in_buffer);
     }
 }
 

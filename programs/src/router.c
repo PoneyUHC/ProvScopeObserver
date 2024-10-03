@@ -47,10 +47,14 @@ int API_send_message()
         return 1;
     }
     
-    printf("Sending message to %d\n", g_STATE_destination);
-    write(g_out_fd[g_STATE_destination], g_in_buffer, g_out_buffer_size);
+    printf("Sending message '%s' to %d\n", g_in_buffer+4, g_STATE_destination);
+    write(g_out_fd[g_STATE_destination], g_in_buffer+4, g_out_buffer_size-4);
 
-    sprintf(g_log_buffer, "%d,%d,%s\n", 2, g_STATE_destination, &g_in_buffer[4]);
+    // produces a of by one if buffer is full, whatever
+    g_in_buffer[g_out_buffer_size] = '\0';
+    printf("size = %d", g_out_buffer_size);
+
+    sprintf(g_log_buffer, "%.1d,%.1d,%s", 2, g_STATE_destination, &g_in_buffer[4]);
     write(g_log_fd, g_log_buffer, 4 + g_out_buffer_size - 4);
     
     return 0;

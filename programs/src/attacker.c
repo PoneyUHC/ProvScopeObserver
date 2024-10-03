@@ -21,19 +21,43 @@ static int g_out_buffer_size;
 
 int send_message_to_router()
 {
+    g_out_buffer_size = 0;
+    
     printf("Router function selector: \n");
     scanf("%d", (int*) g_out_buffer);
     g_out_buffer_size += 4;
 
-    if((int) g_out_buffer[0] == 0)
-    printf("Destination to reach: \n");
-    scanf("%d", (int*) &g_out_buffer[4]);
+    if((int) g_out_buffer[0] == 0){
+        printf("Destination to reach: \n");
+        scanf("%d", (int*) &g_out_buffer[4]);
+        g_out_buffer_size += 4;
+    }
+
+    if((int) g_out_buffer[0] == 1){
+        printf("Message to send: \n");
+        g_out_buffer_size += read(STDIN_FILENO, &g_out_buffer[4], OUT_BUFFER_MAX_SIZE - 4);
+    }
+   
     printf("Sending message to router\n");
-    
+    printf("Message is ");
+    for(int i=0; i<g_out_buffer_size; ++i){
+        printf("%x", g_out_buffer[i]);
+    }
+    printf("\n");
     int n_writen = write(g_router_fd, g_out_buffer, g_out_buffer_size);
     return n_writen > 0;
 }
 
+
+int send_message_to_log_collector()
+{
+    printf("Sending message to log collector\n");
+    strcpy(g_out_buffer, "foup");
+    g_out_buffer_size = 4;
+
+    int n_writen = write(g_log_collector_fd, g_out_buffer, g_out_buffer_size);
+    return n_writen > 0;
+}
 
 
 int send_message(int destination)
@@ -42,9 +66,7 @@ int send_message(int destination)
         case 0:
             return send_message_to_router();
         case 1:
-            printf("Sending message to log collector\n");
-            write(g_log_collector_fd, g_out_buffer, g_out_buffer_size);
-            break;
+            return send_message_to_log_collector();
         default:
             printf("Wrong destination\n");
             return 1;
@@ -56,12 +78,12 @@ int send_message(int destination)
 int choose_target()
 {
     printf("Choose target to send message to :\n");
-    printf("\t 1: router\n");
-    printf("\t 2: log_collector\n");
+    printf("\t 0: router\n");
+    printf("\t 1: log_collector\n");
     
     int target;
     scanf("%d", &target);
-    return target - 1;
+    return target;
 }
 
 
