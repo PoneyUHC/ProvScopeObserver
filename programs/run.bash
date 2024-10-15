@@ -1,10 +1,13 @@
 #! /bin/bash
 
-make
-cd build/exec/
-
 trap 'kill $(jobs -p)' EXIT
 
+make
+
+bpftrace ./trace_open.bt -o trace_open.logs&
+sleep 0.5
+
+cd build/exec/
 # order matters for fifo openings
 ./target.bin run/r_a1 > run/a1.logs&
 sleep 0.1

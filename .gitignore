@@ -1,0 +1,10 @@
+
+build/
+
+**/*.gexf
+
+**/*.logs
+
+.vscode
+
+venv/
