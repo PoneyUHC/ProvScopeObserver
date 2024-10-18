@@ -4,7 +4,9 @@ trap 'kill $(jobs -p)' EXIT
 
 make
 
-bpftrace ./trace_open.bt -o trace_open.logs&
+bpftrace ./trace_enter_open.bt -o trace_enter_open.logs&
+bpftrace ./trace_write.bt -o trace_write.logs&
+bpftrace ./trace_read.bt -o trace_read.logs&
 sleep 0.5
 
 cd build/exec/

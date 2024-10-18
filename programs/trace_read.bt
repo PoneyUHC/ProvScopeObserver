@@ -1,0 +1,14 @@
+
+tracepoint:syscalls:sys_enter_read
+/comm == "target.bin" || comm == "attacker.bin" || comm == "router.bin" || comm == "log_collector.b"/ 
+{
+    // Get the file descriptor, buffer, and count arguments
+    $fd = args->fd;
+    $buf = args->buf;
+    $count = args->count;
+
+    // Limit the amount of data we print from the buffer (e.g., max 128 bytes)
+    $size = $count > 128 ? 128 : $count;
+
+    printf("%ld\n%s-%d\n%d\n%s\n", nsecs, comm, pid, $count, str($buf, $size));
+}
