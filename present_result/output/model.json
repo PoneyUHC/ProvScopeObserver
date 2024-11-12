@@ -1,0 +1,258 @@
+{
+  "processes": [
+    {
+      "pid": 409267,
+      "name": "target.bin",
+      "open_infos": [
+        {
+          "file": {
+            "path": "/etc/ld.so.cache",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "/lib/x86_64-linux-gnu/libc.so.6",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "run/r_a1",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "pid": 409269,
+      "name": "target.bin",
+      "open_infos": [
+        {
+          "file": {
+            "path": "/etc/ld.so.cache",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "/lib/x86_64-linux-gnu/libc.so.6",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "run/r_a2",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        }
+      ]
+    },
+    {
+      "pid": 409277,
+      "name": "log_collector.b",
+      "open_infos": [
+        {
+          "file": {
+            "path": "/etc/ld.so.cache",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "/lib/x86_64-linux-gnu/libc.so.6",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "run/att_l",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "run/logs",
+            "rights": null
+          },
+          "fd": 4,
+          "mode": 24640,
+          "flags": 2
+        },
+        {
+          "file": {
+            "path": "run/goal",
+            "rights": null
+          },
+          "fd": 5,
+          "mode": 0,
+          "flags": 2
+        }
+      ]
+    },
+    {
+      "pid": 409281,
+      "name": "router.bin",
+      "open_infos": [
+        {
+          "file": {
+            "path": "/etc/ld.so.cache",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "/lib/x86_64-linux-gnu/libc.so.6",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "run/att_r",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "run/r_a1",
+            "rights": null
+          },
+          "fd": 4,
+          "mode": 65,
+          "flags": 1
+        },
+        {
+          "file": {
+            "path": "run/r_a2",
+            "rights": null
+          },
+          "fd": 5,
+          "mode": 65,
+          "flags": 1
+        },
+        {
+          "file": {
+            "path": "run/logs",
+            "rights": null
+          },
+          "fd": 6,
+          "mode": 61516,
+          "flags": 2
+        }
+      ]
+    },
+    {
+      "pid": 409284,
+      "name": "attacker.bin",
+      "open_infos": [
+        {
+          "file": {
+            "path": "/etc/ld.so.cache",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "/lib/x86_64-linux-gnu/libc.so.6",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 0
+        },
+        {
+          "file": {
+            "path": "run/att_r",
+            "rights": null
+          },
+          "fd": 3,
+          "mode": 0,
+          "flags": 1
+        },
+        {
+          "file": {
+            "path": "run/att_l",
+            "rights": null
+          },
+          "fd": 4,
+          "mode": 0,
+          "flags": 1
+        }
+      ]
+    }
+  ],
+  "channels": [],
+  "files": [
+    {
+      "path": "/etc/ld.so.cache",
+      "rights": null
+    },
+    {
+      "path": "/lib/x86_64-linux-gnu/libc.so.6",
+      "rights": null
+    },
+    {
+      "path": "run/att_r",
+      "rights": null
+    },
+    {
+      "path": "run/att_l",
+      "rights": null
+    },
+    {
+      "path": "run/logs",
+      "rights": null
+    },
+    {
+      "path": "run/r_a1",
+      "rights": null
+    },
+    {
+      "path": "run/goal",
+      "rights": null
+    },
+    {
+      "path": "run/r_a2",
+      "rights": null
+    }
+  ]
+}

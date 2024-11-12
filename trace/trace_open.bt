@@ -1,0 +1,36 @@
+
+#include <fcntl.h>
+
+
+tracepoint:syscalls:sys_enter_openat
+/curtask->parent->pid == $1/
+{
+    @opened[pid] = 1;
+
+    @mode[pid] = args->mode;
+    @filename[pid] = str(args->filename);
+
+    @access_mode[pid] = args->flags & O_ACCMODE;
+}
+
+
+tracepoint:syscalls:sys_exit_openat
+/@opened[pid] == 1/
+{
+    $fd = args->ret;
+
+    printf("%s---%d---%s---%ld---%d---%d\n", comm, pid, @filename[pid], $fd, @mode[pid], @access_mode[pid]);
+
+    delete(@opened[pid]);
+    delete(@mode[pid]);
+    delete(@filename[pid]);
+    delete(@access_mode[pid]);
+}
+
+END 
+{
+    clear(@opened);
+    clear(@mode);
+    clear(@filename);
+    clear(@access_mode);
+}

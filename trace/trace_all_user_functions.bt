@@ -1,0 +1,17 @@
+
+BEGIN 
+{
+    printf("%s\n", str($1));
+}
+
+uprobe:$1:*
+{
+    printf("%s---%d---%s\n", comm, pid, probe);
+    @last_called = func;
+}
+
+uretprobe:$1:*
+{
+    printf("%s---%d---%s returned %d\n", comm, pid, @last_called, retval);
+}
+
