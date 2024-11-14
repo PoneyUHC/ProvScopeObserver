@@ -56,7 +56,7 @@ int API_read_and_parse(){
         return 0;
     }
 
-    printf("Content of buffer after parsing :");
+    LOG("Content of buffer after parsing :");
     printf("%s\n", g_parse_buffer);
 
     return 0;
@@ -65,7 +65,7 @@ int API_read_and_parse(){
 
 void write_to_goal()
 {
-    printf("Writing '%s' to goal\n", g_parse_buffer);
+    LOG("Writing '%s' to goal\n", g_parse_buffer);
     write(g_goal_fd, g_parse_buffer, g_parse_buffer_size);
 
     memset(g_parse_buffer, 0, PARSE_BUFFER_SIZE);
@@ -75,10 +75,10 @@ void write_to_goal()
 
 int handle_input()
 {
-    printf("Received message: %d\n", g_received_command);
+    LOG("Received message: %d\n", g_received_command);
 
     if(g_received_command != 0){
-        printf("Message not recognized\n");
+        LOG("Message not recognized\n");
         return 1;
     } 
     
@@ -96,29 +96,29 @@ void loop()
 
     while(1){
         
-        printf("Reading input fifo\n");
+        LOG("Reading input fifo\n");
         n_read = read(g_in_fd, &g_received_command, 4);
 
-        if(n_read != -1){
+        if(n_read != -1 && n_read != 0){
             err = handle_input();
             if(err){
                 sleep(1);
             }
         } else {
-            printf("Nothing to read\n");
+            LOG("Nothing to read\n");
             sleep(1);
         }
 
         int actual_date = time(NULL);
         if(actual_date - last_read_date > read_timer){
             last_read_date = actual_date;
-            printf("Read timer expired, reading and parsing log file\n");
+            LOG("Read timer expired, reading and parsing log file\n");
             API_read_and_parse();
         }
 
         if(actual_date - last_write_date > write_timer){
             last_write_date = actual_date;
-            printf("Write timer expired, writing parsed data to goal\n");
+            LOG("Write timer expired, writing parsed data to goal\n");
             write_to_goal();
         }
     }
@@ -135,19 +135,21 @@ void cleanup(char *argv[])
 
 int main(int argc, char *argv[])
 {
+    setvbuf(stdout, NULL, _IONBF, 0);
+
     g_in_fd = -1;
     g_goal_fd = -1;
     g_log_fd = -1;
     last_read_date = time(NULL);
 
     if(argc != 4){
-        printf("Usage: %s [fifo_in] [log_file] [goal_file]\n", argv[0]);
+        LOG("Usage: %s [fifo_in] [log_file] [goal_file]\n", argv[0]);
         return 1;
     }
 
     for(int i=0; i<3; ++i){
         if(strlen(argv[i+1]) >= PATH_MAX_LEN){
-            printf("File path too long : %s\n", argv[i+1]);
+            LOG("File path too long : %s\n", argv[i+1]);
             return 1;
         }
     }
@@ -156,21 +158,21 @@ int main(int argc, char *argv[])
     int err;
     err = open_fifo(argv[1], &g_in_fd, O_RDONLY);
     if(err){
-        printf("Could not open fifo %s\n", argv[1]);
+        LOG("Could not open fifo %s\n", argv[1]);
         cleanup(argv);
         return 2;
     }
     
     g_log_fd = open(argv[2], O_RDWR | O_CREAT);
     if(g_log_fd == -1){
-        printf("Could not open file %s\n", argv[2]);
+        LOG("Could not open file %s\n", argv[2]);
         cleanup(argv);
         return 2;
     }
 
     g_goal_fd = open(argv[3], O_RDWR | O_CREAT);
     if(g_goal_fd == -1){
-        printf("Could not open file %s\n", argv[3]);
+        LOG("Could not open file %s\n", argv[3]);
         cleanup(argv);
         return 2;
     }
