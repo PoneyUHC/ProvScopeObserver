@@ -16,35 +16,37 @@ static int g_router_fd;
 static int g_log_collector_fd;
 
 static char g_out_buffer[OUT_BUFFER_MAX_SIZE];
-static int g_out_buffer_size;
+static int g_in_packet_size;
 
 
 int send_message_to_router()
 {
-    g_out_buffer_size = 0;
+    g_in_packet_size = 0;
     
     printf("Router function selector: \n");
-    scanf("%d", (int*) g_out_buffer);
-    g_out_buffer_size += 4;
+    scanf("%d", (int*) (g_out_buffer+4));
+    g_in_packet_size += 4;
 
-    if((int) g_out_buffer[0] == 0){
+    if( ((int*)g_out_buffer)[1] == 0){
         printf("Destination to reach: \n");
-        scanf("%d", (int*) &g_out_buffer[4]);
-        g_out_buffer_size += 4;
+        scanf("%d", (int*) g_out_buffer+8);
+        g_in_packet_size += 4;
     }
 
-    if((int) g_out_buffer[0] == 1){
+    if( ((int*)g_out_buffer)[1] == 1){
         printf("Message to send: \n");
-        g_out_buffer_size += read(STDIN_FILENO, &g_out_buffer[4], OUT_BUFFER_MAX_SIZE - 4);
+        g_in_packet_size += read(STDIN_FILENO, g_out_buffer+8, OUT_BUFFER_MAX_SIZE - 8);
     }
+
+    * (int*)g_out_buffer = g_in_packet_size;
    
     printf("Sending message to router\n");
     printf("Message is ");
-    for(int i=0; i<g_out_buffer_size; ++i){
+    for(int i=0; i<g_in_packet_size; ++i){
         printf("%x", g_out_buffer[i]);
     }
     printf("\n");
-    int n_writen = write(g_router_fd, g_out_buffer, g_out_buffer_size);
+    int n_writen = write(g_router_fd, g_out_buffer, g_in_packet_size);
     return n_writen > 0;
 }
 
@@ -52,10 +54,10 @@ int send_message_to_router()
 int send_message_to_log_collector()
 {
     printf("Sending message to log collector\n");
-    strcpy(g_out_buffer, "foup");
-    g_out_buffer_size = 4;
+    *g_out_buffer = 0;
+    g_in_packet_size = 1;
 
-    int n_writen = write(g_log_collector_fd, g_out_buffer, g_out_buffer_size);
+    int n_writen = write(g_log_collector_fd, g_out_buffer, g_in_packet_size);
     return n_writen > 0;
 }
 

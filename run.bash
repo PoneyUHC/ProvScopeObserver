@@ -18,7 +18,7 @@ bpftrace --unsafe trace/trace_all_user_functions.bt /home/loic/OneDrive/phd_shar
 bpftrace $BPF_SCRIPTS_DIR/trace_open.bt $ARGS -o $BPF_LOGS_DIR/trace_open.logs&
 #bpftrace $BPF_SCRIPTS_DIR/trace_write.bt $ARGS -o $BPF_LOGS_DIR/trace_write.logs&
 #bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS -o $BPF_LOGS_DIR/trace_read.logs&
-sleep 2
+#sleep 2
 
 
 cd $BINARIES_DIR

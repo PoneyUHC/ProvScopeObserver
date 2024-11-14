@@ -18,23 +18,42 @@ static int g_STATE_destination;
 static int g_in_fd;
 
 #define N_DESTINATION 2
+#define ATTACKER_INDEX N_DESTINATION+1
 static int g_out_fd[N_DESTINATION];
 static int g_log_fd;
 
-static char g_in_buffer[IN_BUFFER_MAX_SIZE];
-static int g_out_buffer_size;
+static char g_in_msg[IN_BUFFER_MAX_SIZE];
+static int g_in_msg_size;
+static int g_in_packet_size;
 
 static char g_log_buffer[LOG_BUFFER_SIZE];
 
 
 int API_select_destination()
 {
-    if(g_out_buffer_size < 8){
-        printf("no destination selection specified, aborting parsing\n");
+    if(g_in_packet_size < 12){
+        printf("Message too short\n");
         return 1;
     }
 
-    g_STATE_destination = (int) *(g_in_buffer+4);
+    int tmp_destination = 0;
+    int n_read = read(g_in_fd, &tmp_destination, 4);
+    if(n_read == -1){
+        printf("Error on read\n");
+        return 1;
+    }
+    if (n_read == 0) {
+        printf("Nothing to read\n");
+        return 1;
+    }
+
+    if(tmp_destination != 0 && tmp_destination != 1) {
+        printf("Invalid destination value\n");
+        return 1;
+    }
+
+    g_STATE_destination = tmp_destination;
+
     printf("Destination set to %d\n", g_STATE_destination);
     return 0;
 }
@@ -42,20 +61,23 @@ int API_select_destination()
 
 int API_send_message()
 {
-    if(g_STATE_destination != 0 && g_STATE_destination != 1){
-        printf("Wrong destination\n");
+    int n_read = read(g_in_fd, g_in_msg, g_in_packet_size - 8);
+    if(n_read == -1){
+        printf("Error on read\n");
         return 1;
     }
-    
-    printf("Sending message '%s' to %d\n", g_in_buffer+4, g_STATE_destination);
-    write(g_out_fd[g_STATE_destination], g_in_buffer+4, g_out_buffer_size-4);
+    if (n_read == 0) {
+        printf("Nothing to read\n");
+        return 1;
+    }
 
-    // produces a of by one if buffer is full, whatever
-    g_in_buffer[g_out_buffer_size] = '\0';
-    printf("size = %d", g_out_buffer_size);
+    printf("Sending message '%s' to %d\n", g_in_msg, g_STATE_destination);
+    write(g_out_fd[g_STATE_destination], g_in_msg, g_in_msg_size);
 
-    sprintf(g_log_buffer, "%.1d,%.1d,%s", 2, g_STATE_destination, &g_in_buffer[4]);
-    write(g_log_fd, g_log_buffer, 4 + g_out_buffer_size - 4);
+    g_in_msg[g_in_msg_size] = '\0';
+
+    snprintf(g_log_buffer, 512, "%.1d,%.1d,%s", ATTACKER_INDEX, g_STATE_destination, g_in_msg);
+    write(g_log_fd, g_log_buffer, 4 + g_in_msg_size);
     
     return 0;
 }
@@ -63,12 +85,44 @@ int API_send_message()
 
 int parse_API_function_selection(int *out_selected)
 {
-    if(g_out_buffer_size < 4){
-        printf("no api function specified, aborting parsing\n");
-        return -1;
+    int n_read = read(g_in_fd, out_selected, 4);
+    if(n_read == -1){
+        printf("Error on read\n");
+        return 1;
+    }
+    if (n_read == 0) {
+        printf("Nothing to read\n");
+        return 1;
     }
 
-    *out_selected = (int) *g_in_buffer;
+    if(*out_selected != 0 && *out_selected != 1)  {
+        printf("Invalid selector value\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+
+int parse_packet_size(int *out_size)
+{
+    int n_read = read(g_in_fd, &g_in_packet_size, 4);
+    if(n_read == -1){
+        printf("Error on read\n");
+        return 1;
+    }
+    if (n_read == 0) {
+        printf("Nothing to read\n");
+        return 1;
+    }
+
+    if(g_in_packet_size < 9){
+        printf("Message too short\n");
+        return 1;
+    }
+
+    g_in_msg_size = g_in_packet_size - 8;
+
     return 0;
 }
 
@@ -90,21 +144,20 @@ int dispatch_API_call(int function_id)
 void loop()
 {
     int err;
+    int selector;
 
     while(1){
         
         printf("Reading input fifo\n");
-        g_out_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
-        if(g_out_buffer_size == -1){
-            printf("Error on read\n");
+
+        err = parse_packet_size(&g_in_packet_size);
+        if(err){
             sleep(1);
             continue;
         }
 
-        int selector = 0;
         err = parse_API_function_selection(&selector);
-        if(err == -1){
-            printf("Error on selector field\n");
+        if(err){
             sleep(1);
             continue;
         }
@@ -130,6 +183,9 @@ void cleanup(char *argv[])
 
 int main(int argc, char *argv[])
 {
+
+    g_STATE_destination = 0;
+
     g_in_fd = -1;
     g_log_fd = -1;
     g_out_fd[0] = -1;

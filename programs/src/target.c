@@ -14,8 +14,8 @@
 
 static int g_in_fd;
 
-static char g_in_buffer[IN_BUFFER_MAX_SIZE];
-static int g_out_buffer_size;
+static char g_in_msg[IN_BUFFER_MAX_SIZE];
+static int g_in_packet_size;
 
 
 
@@ -24,13 +24,13 @@ void loop()
     while(1){
         
         printf("Reading input fifo\n");
-        g_out_buffer_size = read(g_in_fd, g_in_buffer, IN_BUFFER_MAX_SIZE);
-        if(g_out_buffer_size == -1 || g_out_buffer_size == 0){
+        g_in_packet_size = read(g_in_fd, g_in_msg, IN_BUFFER_MAX_SIZE);
+        if(g_in_packet_size == -1 || g_in_packet_size == 0){
             printf("Error on read\n");
             sleep(1);
             continue;
         }
-        printf("Received message '%s'\n", g_in_buffer);
+        printf("Received message '%s'\n", g_in_msg);
     }
 }
 

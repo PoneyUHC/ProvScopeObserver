@@ -11,20 +11,18 @@
 
 
 #define PATH_MAX_LEN 256
-#define OUT_BUFFER_MAX_SIZE 512
 #define PARSE_BUFFER_SIZE 1024
 
 static int g_in_fd;
 static int g_log_fd;
 static int g_goal_fd;
 
-static char g_in_buffer[OUT_BUFFER_MAX_SIZE];
-static int g_out_buffer_size = 0;
+static int g_received_command;
 
 static char g_parse_buffer[PARSE_BUFFER_SIZE];
 static int g_parse_buffer_size = 0;
 
-static int read_timer = 2;
+static int read_timer = 4;
 static int write_timer = 10;
 static int last_read_date = 0;
 static int last_write_date = 0;
@@ -77,8 +75,9 @@ void write_to_goal()
 
 int handle_input()
 {
-    printf("Received message %s\n", g_in_buffer);
-    if(g_out_buffer_size != 5 || strcmp(g_in_buffer, "foup") != 0){
+    printf("Received message: %d\n", g_received_command);
+
+    if(g_received_command != 0){
         printf("Message not recognized\n");
         return 1;
     } 
@@ -90,6 +89,7 @@ int handle_input()
 void loop()
 {
     int err;
+    int n_read;
 
     int flags = fcntl(g_in_fd, F_GETFL, 0);
     fcntl(g_in_fd, F_SETFL, flags | O_NONBLOCK);
@@ -97,9 +97,9 @@ void loop()
     while(1){
         
         printf("Reading input fifo\n");
-        g_out_buffer_size = read(g_in_fd, g_in_buffer, OUT_BUFFER_MAX_SIZE);
+        n_read = read(g_in_fd, &g_received_command, 4);
 
-        if(g_out_buffer_size != -1){
+        if(n_read != -1){
             err = handle_input();
             if(err){
                 sleep(1);
