@@ -14,8 +14,8 @@ trap 'kill $(jobs -p)' EXIT
 
 make -C $PROGRAMS_DIR
 
-bpftrace --unsafe trace/trace_all_user_functions.bt /home/loic/OneDrive/phd_shared/phd/IPC_Analyzer/programs/build/exec/router.bin -o trace/logs/trace_all_user_functions.logs&
-#bpftrace $BPF_SCRIPTS_DIR/trace_open.bt $ARGS -o $BPF_LOGS_DIR/trace_open.logs&
+#bpftrace --unsafe trace/trace_all_user_functions.bt /home/loic/OneDrive/phd_shared/phd/IPC_Analyzer/programs/build/exec/router.bin -o trace/logs/trace_all_user_functions.logs&
+bpftrace $BPF_SCRIPTS_DIR/trace_open.bt $ARGS -o $BPF_LOGS_DIR/trace_open.logs&
 #bpftrace $BPF_SCRIPTS_DIR/trace_write.bt $ARGS -o $BPF_LOGS_DIR/trace_write.logs&
 #bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS -o $BPF_LOGS_DIR/trace_read.logs&
 sleep 2
