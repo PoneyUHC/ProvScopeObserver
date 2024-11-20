@@ -1,22 +1,36 @@
 
 {
     "targets" : [
-        
+        "programs/build/exec/run/att_r",
+        "programs/build/exec/run/att_l"
     ],
 
     "actions" : [
         {
-            "name" : "Send message to target 0",
-            "messages": [
+            "name" : "Send hello to A0",
+            "interactions": [
                 {
                     "target_index" : 0,
-                    "payload" : "0b.00.00.00_00.00.00.00_00.00.00.00"
+                    "payload" : "0c.00.00.00_00.00.00.00_00.00.00.00"
                 },
                 {
                     "target_index" : 0,
                     "payload" : "0f.00.00.00_01.00.00.00_68.65.6c.6c.6f.20.30"
                 }
-                
+            ]
+        },
+
+        {
+            "name" : "Send hello to A1",
+            "interactions": [
+                {
+                    "target_index" : 0,
+                    "payload" : "0c.00.00.00_00.00.00.00_01.00.00.00"
+                },
+                {
+                    "target_index" : 0,
+                    "payload" : "0f.00.00.00_01.00.00.00_68.65.6c.6c.6f.20.31"
+                }
             ]
         }
     ]
