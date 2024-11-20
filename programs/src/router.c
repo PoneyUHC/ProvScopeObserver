@@ -106,7 +106,7 @@ int parse_API_function_selection(int *out_selected)
 }
 
 
-int parse_packet_size(int *out_size)
+int parse_packet_size()
 {
     int n_read = read(g_in_fd, &g_out_packet_size, 4);
     if(usual_read_errors(n_read) ){
@@ -171,11 +171,11 @@ void loop()
 }
 
 
-void cleanup(char *argv[])
+void cleanup()
 {
-    close_fifo(g_in_fd, argv[1]);
-    close_fifo(g_out_fd[0], argv[2]);
-    close_fifo(g_out_fd[1], argv[3]);
+    close_fifo(g_in_fd);
+    close_fifo(g_out_fd[0]);
+    close_fifo(g_out_fd[1]);
     close(g_log_fd);
 }
 

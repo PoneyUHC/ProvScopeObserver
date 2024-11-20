@@ -38,10 +38,11 @@ int send_message_to_router()
     if(selector == 1){
         LOG("Message to send: \n");
         g_out_packet_size += read(STDIN_FILENO, g_out_packet+8, OUT_BUFFER_MAX_SIZE - 8);
+        // Remove '\n'
+        --g_out_packet_size;
     }
 
-    // Remove '\n'
-    --g_out_packet_size;
+    
 
     ((int*)g_out_packet)[0] = g_out_packet_size;
    
@@ -104,10 +105,10 @@ void loop()
 }
 
 
-void cleanup(char *argv[])
+void cleanup()
 {
-    close_fifo(g_router_fd, argv[1]);
-    close_fifo(g_log_collector_fd, argv[2]);
+    close_fifo(g_router_fd);
+    close_fifo(g_log_collector_fd);
 }
 
 

@@ -35,9 +35,9 @@ void loop()
 }
 
 
-void cleanup(char *argv[])
+void cleanup()
 {
-    close_fifo(g_in_fd, argv[1]);
+    close_fifo(g_in_fd);
 }
 
 

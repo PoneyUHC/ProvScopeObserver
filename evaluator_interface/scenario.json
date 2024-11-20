@@ -1,0 +1,23 @@
+
+{
+    "targets" : [
+        
+    ],
+
+    "actions" : [
+        {
+            "name" : "Send message to target 0",
+            "messages": [
+                {
+                    "target_index" : 0,
+                    "payload" : "0b.00.00.00_00.00.00.00_00.00.00.00"
+                },
+                {
+                    "target_index" : 0,
+                    "payload" : "0f.00.00.00_01.00.00.00_68.65.6c.6c.6f.20.30"
+                }
+                
+            ]
+        }
+    ]
+}
