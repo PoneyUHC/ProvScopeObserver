@@ -24,21 +24,26 @@ static int g_log_fd;
 
 static char g_in_msg[IN_BUFFER_MAX_SIZE];
 static int g_in_msg_size;
-static int g_out_packet_size;
+static int g_in_packet_size;
 
 static char g_log_buffer[LOG_BUFFER_SIZE];
+
+#define ERR_NOTHING_TO_READ 1
+#define ERR_READ_ERROR 2
+#define ERR_MSG_TOO_SHORT 3
+#define ERR_INVALID_SELECTOR_VALUE 4
 
 
 int usual_read_errors(int n_read)
 {
     if (n_read == 0) {
         LOG("Nothing to read\n");
-        return 1;
+        return ERR_NOTHING_TO_READ;
     }
         
     if(n_read < 0){
         LOG("Error on read\n");
-        return 2;
+        return ERR_READ_ERROR;
     }
     
     return 0;
@@ -47,15 +52,17 @@ int usual_read_errors(int n_read)
 
 int API_select_destination()
 {
-    if(g_out_packet_size < 12){
+    if(g_in_packet_size < 12){
+        read(g_in_fd, g_in_msg, g_in_packet_size - 8);
         LOG("Message too short\n");
-        return 1;
+        return ERR_MSG_TOO_SHORT;
     }
 
     int tmp_destination = 0;
     int n_read = read(g_in_fd, &tmp_destination, 4);
-    if(usual_read_errors(n_read) ){
-        return 1;
+    int err = usual_read_errors(n_read);
+    if(err){
+        return err;
     }
 
     if(tmp_destination != 0 && tmp_destination != 1) {
@@ -72,10 +79,11 @@ int API_select_destination()
 
 int API_send_message()
 {
-    int n_read = read(g_in_fd, g_in_msg, g_out_packet_size - 8);
-    if(usual_read_errors(n_read) ){
+    int n_read = read(g_in_fd, g_in_msg, g_in_packet_size - 8);
+    int err = usual_read_errors(n_read);
+    if(err){
         LOG("Packet size and message don't match\n");
-        return 1;
+        return err;
     }
 
     LOG("Sending message '%s' to %d\n", g_in_msg, g_STATE_destination);
@@ -83,7 +91,7 @@ int API_send_message()
 
     g_in_msg[g_in_msg_size] = '\0';
 
-    snprintf(g_log_buffer, 512, "%.1d,%.1d,%s", ATTACKER_INDEX, g_STATE_destination, g_in_msg);
+    snprintf(g_log_buffer, 512, "%.1d,%.1d,%s\n", ATTACKER_INDEX, g_STATE_destination, g_in_msg);
     write(g_log_fd, g_log_buffer, 4 + g_in_msg_size);
     
     return 0;
@@ -93,13 +101,14 @@ int API_send_message()
 int parse_API_function_selection(int *out_selected)
 {
     int n_read = read(g_in_fd, out_selected, 4);
-    if(usual_read_errors(n_read) ){
-        return 1;
+    int err = usual_read_errors(n_read);
+    if(err){
+        return err;
     }
 
     if(*out_selected != 0 && *out_selected != 1)  {
         LOG("Invalid selector value\n");
-        return 1;
+        return ERR_INVALID_SELECTOR_VALUE;
     }
 
     return 0;
@@ -108,17 +117,19 @@ int parse_API_function_selection(int *out_selected)
 
 int parse_packet_size()
 {
-    int n_read = read(g_in_fd, &g_out_packet_size, 4);
-    if(usual_read_errors(n_read) ){
-        return 1;
+    int n_read = read(g_in_fd, &g_in_packet_size, 4);
+    int err = usual_read_errors(n_read);
+    if(err){
+        return err;
     }
 
-    if(g_out_packet_size < 9){
-        LOG("Message too short\n");
-        return 1;
+    if(g_in_packet_size < 9){
+        // empty rest of ill formed message
+        read(g_in_fd, g_in_msg, g_in_packet_size - 4);
+        return ERR_MSG_TOO_SHORT;
     }
 
-    g_in_msg_size = g_out_packet_size - 8;
+    g_in_msg_size = g_in_packet_size - 8;
 
     return 0;
 }
@@ -147,16 +158,20 @@ void loop()
         
         LOG("Reading input fifo\n");
 
-        err = parse_packet_size(&g_out_packet_size);
+        err = parse_packet_size(&g_in_packet_size);
         if(err){
-            LOG("Incorrect packet size\n");
+            if(err == ERR_MSG_TOO_SHORT){
+                LOG("Message too short\n");
+            }
             sleep(1);
             continue;
         }
 
         err = parse_API_function_selection(&selector);
         if(err){
-            LOG("Incorrect function selector\n");
+            if(err == ERR_INVALID_SELECTOR_VALUE){
+                LOG("Incorrect function selector\n");
+            }
             sleep(1);
             continue;
         }
