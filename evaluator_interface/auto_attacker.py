@@ -7,6 +7,7 @@ from typing import Optional
 SPLIT_STR = ":"
 IGNORE_CHARS = [".", "_"]
 
+
 class SystemInteraction:
     
     def __init__(self, target, payload):
@@ -35,8 +36,8 @@ class EvaluatorAction:
 
 class TestScenario:
 
-    def __init__(self, action, targets) -> None:
-        self.actions = action
+    def __init__(self, actions, targets) -> None:
+        self.actions = actions
         self.targets = targets
         self.fds = {}
         
@@ -110,7 +111,6 @@ def parse_scenario(scenario_file_path : str) -> Optional[TestScenario]:
         actions.append(action)
     
     scenario = TestScenario(actions, targets)
-
     return scenario
         
 
