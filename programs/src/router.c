@@ -92,7 +92,7 @@ int API_send_message()
     g_in_msg[g_in_msg_size] = '\0';
 
     snprintf(g_log_buffer, 512, "%.1d,%.1d,%s\n", ATTACKER_INDEX, g_STATE_destination, g_in_msg);
-    write(g_log_fd, g_log_buffer, 4 + g_in_msg_size);
+    write(g_log_fd, g_log_buffer, 4 + g_in_msg_size + 1);
     
     return 0;
 }
