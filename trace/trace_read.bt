@@ -1,14 +1,21 @@
 
 tracepoint:syscalls:sys_enter_read
-/comm == "target.bin" || comm == "attacker.bin" || comm == "router.bin" || comm == "log_collector.b"/ 
+/ curtask->parent->pid == $1 /
 {
-    // Get the file descriptor, buffer, and count arguments
-    $fd = args->fd;
-    $buf = args->buf;
-    $count = args->count;
+    @entered_read[pid] = 1;
 
-    // Limit the amount of data we print from the buffer (e.g., max 128 bytes)
-    $size = $count > 128 ? 128 : $count;
+    @fd[pid] = args->fd;
+    @buf[pid] = args->buf;
+    @count[pid] = args->count;
 
-    printf("%ld\n%s-%d\n%d\n%s\n", nsecs, comm, pid, $count, str($buf, $size));
+    @size[pid] = @count[pid] > 128 ? 128 : @count[pid];
+}
+
+
+tracepoint:syscalls:sys_exit_read
+/ @entered_read[pid] == 1 /
+{
+    $ret = args->ret;
+
+    printf("%s---%d---%d---%r\n", comm, pid, @count[pid], buf(@buf[pid], @size[pid]));
 }

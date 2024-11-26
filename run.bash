@@ -2,6 +2,8 @@
 
 export BPFTRACE_MAX_STRLEN=90
 
+CLOSE_STDIN=< /dev/null
+
 ARGS=$$
 PROGRAMS_DIR=programs
 BINARIES_DIR=$PROGRAMS_DIR/build/exec
@@ -21,9 +23,9 @@ trap 'cleanup' EXIT
 make -C $PROGRAMS_DIR
 
 #bpftrace --unsafe trace/trace_all_user_functions.bt $(realpath .)/programs/build/exec/router.bin -o trace/logs/trace_all_user_functions.logs&
-#sudo bpftrace $BPF_SCRIPTS_DIR/trace_open.bt $ARGS -o $BPF_LOGS_DIR/trace_open.logs&
-sudo -b bpftrace $BPF_SCRIPTS_DIR/trace_write.bt $ARGS -o $BPF_LOGS_DIR/trace_write.logs
-#bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS -o $BPF_LOGS_DIR/trace_read.logs&
+sudo bpftrace $BPF_SCRIPTS_DIR/trace_open.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_open.logs &
+sudo bpftrace $BPF_SCRIPTS_DIR/trace_write.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_write.logs $CLOSE_STDIO &
+sudo bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_read.logs $CLOSE_STDIO &
 #sleep 2
 
 cd $BINARIES_DIR
@@ -34,6 +36,8 @@ sleep 0.5
 sleep 0.5
 ./log_collector.bin run/att_l run/logs run/goal > run/log_c.logs&
 sleep 0.5
-./router.bin run/att_r run/r_a1 run/r_a2 run/logs
-#sleep 0.5
-#./attacker.bin run/att_r run/att_l
+./router.bin run/att_r run/r_a1 run/r_a2 run/logs > run/router.logs&
+sleep 0.5
+
+cd -
+python3 evaluator_interface/auto_attacker.py evaluator_interface/scenario.json

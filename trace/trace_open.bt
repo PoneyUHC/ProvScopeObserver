@@ -2,10 +2,10 @@
 #include <fcntl.h>
 
 tracepoint:syscalls:sys_enter_openat
-/curtask->parent->pid == $1/
+/ curtask->parent->pid == $1 /
 {
     @opened[pid] = 1;
-    
+
     @mode[pid] = args->mode;
     @filename[pid] = str(args->filename);
 

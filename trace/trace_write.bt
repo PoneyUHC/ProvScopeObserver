@@ -1,6 +1,6 @@
 
-
 tracepoint:syscalls:sys_enter_write
+/ curtask->parent->pid == $1 /
 {
     @entered_write[pid] = 1;
 
@@ -13,7 +13,7 @@ tracepoint:syscalls:sys_enter_write
 
 
 tracepoint:syscalls:sys_exit_write
-/ @entered_write[pid] == 1/
+/ @entered_write[pid] == 1 /
 {
     $ret = args->ret;
 
