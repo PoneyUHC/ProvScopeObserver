@@ -18,7 +18,7 @@ static int g_STATE_destination;
 static int g_in_fd;
 
 #define N_DESTINATION 2
-#define ATTACKER_INDEX N_DESTINATION+1
+#define ATTACKER_INDEX N_DESTINATION
 static int g_out_fd[N_DESTINATION];
 static int g_log_fd;
 
