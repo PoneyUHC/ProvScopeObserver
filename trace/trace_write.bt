@@ -17,5 +17,21 @@ tracepoint:syscalls:sys_exit_write
 {
     $ret = args->ret;
 
-    printf("%s---%d---%d---%r\n", comm, pid, @count[pid], buf(@buf[pid], @size[pid]));
+    printf("%ld---%s---%d---%d---%d---%r\n", nsecs, comm, pid,  @fd[pid], @count[pid], buf(@buf[pid], @size[pid]));
+
+    delete(@entered_write[pid]);
+    delete(@fd[pid]);
+    delete(@buf[pid]);
+    delete(@count[pid]);
+    delete(@size[pid]);
+}
+
+
+END 
+{
+    clear(@entered_write);
+    clear(@fd);
+    clear(@buf);
+    clear(@count);
+    clear(@size);
 }

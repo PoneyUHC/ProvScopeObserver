@@ -4,7 +4,7 @@
 tracepoint:syscalls:sys_enter_openat
 / curtask->parent->pid == $1 /
 {
-    @opened[pid] = 1;
+    @entered_open[pid] = 1;
 
     @mode[pid] = args->mode;
     @filename[pid] = str(args->filename);
@@ -14,11 +14,11 @@ tracepoint:syscalls:sys_enter_openat
 
 
 tracepoint:syscalls:sys_exit_openat
-/@opened[pid] == 1/
+/@entered_open[pid] == 1/
 {
-    printf("%s---%d---%s---%ld---%d---%d\n", comm, pid, @filename[pid], args->ret, @mode[pid], @access_mode[pid]);
+    printf("%ld---%s---%d---%s---%ld---%d---%d\n", nsecs, comm, pid, @filename[pid], args->ret, @mode[pid], @access_mode[pid]);
 
-    delete(@opened[pid]);
+    delete(@entered_open[pid]);
     delete(@mode[pid]);
     delete(@filename[pid]);
     delete(@access_mode[pid]);
@@ -26,7 +26,7 @@ tracepoint:syscalls:sys_exit_openat
 
 END 
 {
-    clear(@opened);
+    clear(@entered_open);
     clear(@mode);
     clear(@filename);
     clear(@access_mode);

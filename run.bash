@@ -12,9 +12,15 @@ BPF_LOGS_DIR=trace/logs
 
 [ ! -d $BPF_LOGS_DIR ] && mkdir -p $BPF_LOGS_DIR
 
+already_cleaned=0
+
 cleanup() {
+    if [ $already_cleaned -eq 1 ]; then
+        return
+    fi
     kill $(jobs -p)
     pgrep bpftrace | xargs sudo kill -9
+    already_cleaned=1
 }
 
 
@@ -22,11 +28,15 @@ trap 'cleanup' EXIT
 
 make -C $PROGRAMS_DIR
 
-#bpftrace --unsafe trace/trace_all_user_functions.bt $(realpath .)/programs/build/exec/router.bin -o trace/logs/trace_all_user_functions.logs&
+# get the sudo confirmation before the ones backgrounding
+sudo true
+# sudo bpftrace --unsafe trace/trace_all_user_functions.bt $(realpath .)/programs/build/exec/router.bin -o trace/logs/trace_all_user_functions.logs&
 sudo bpftrace $BPF_SCRIPTS_DIR/trace_open.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_open.logs &
+sudo bpftrace $BPF_SCRIPTS_DIR/trace_close.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_close.logs &
 sudo bpftrace $BPF_SCRIPTS_DIR/trace_write.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_write.logs $CLOSE_STDIO &
 sudo bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_read.logs $CLOSE_STDIO &
-#sleep 2
+
+sleep 2
 
 cd $BINARIES_DIR
 # order matters for fifo openings
@@ -41,3 +51,9 @@ sleep 0.5
 
 cd -
 python3 evaluator_interface/auto_attacker.py evaluator_interface/scenario.json
+
+
+cleanup
+
+# create report from logs
+python3 present_result/export_result.py

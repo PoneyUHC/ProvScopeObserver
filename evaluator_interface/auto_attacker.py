@@ -115,6 +115,9 @@ def parse_scenario(scenario_file_path : str) -> Optional[TestScenario]:
         
 
 def main():
+
+    # TODO : target array to target map for better readability
+
     argc = len(sys.argv)
     argv = sys.argv
 

@@ -4,15 +4,36 @@ class Process:
         self.pid = pid
         self.name = name
         self.open_infos = []
+        self.communication_infos = []
 
     def __str__(self):
-        return f'Process(pid={self.pid}, name={self.name}, open_infos={self.open_infos})'
+        return f'Process(pid={self.pid}, name={self.name}, open_infos={self.open_infos}, communication_infos={self.communication_infos})'
     
     def __repr__(self):
         return str(self)
     
-    def open_file(self, open_info):
+    def add_open_info(self, open_info):
         self.open_infos.append(open_info)
+
+    def add_communication_info(self, communication_info):
+        self.communication_infos.append(communication_info)
+
+    def get_unclosed_open_info(self, fd):
+        for open_info in self.open_infos:
+            if open_info.fd == fd and open_info.close_time == -1:
+                return open_info
+        
+        missing_open_time = OpenInfo(-1, -1, None, fd, -1, -1)
+        self.open_infos.append(missing_open_time)
+        return missing_open_time 
+    
+    def get_open_info_at_time(self, fd, timestamp):
+        for open_info in self.open_infos:
+            if (open_info.fd == fd 
+                and open_info.open_time <= timestamp 
+                and open_info.close_time > timestamp):
+                return open_info
+        return None
 
 
 class ChannelType:
@@ -35,19 +56,47 @@ class ChannelType:
 
 
 class CommunicationChannel:
-    def __init__(self, name, file, readers, writers, type):
+    def __init__(self, name, type):
         self.name = name
-        self.file = file
-        self.readers = readers
-        self.writers = writers
         self.type = type
 
     def __str__(self) -> str:
-        return f'CommunicationChannel(name={self.name}, file={self.file}, readers={self.readers}, writers={self.writers}, type={str(self.type)})'
-    
+        return f'CommunicationChannel(name={self.name}, type={self.type})'
     def __repr__(self):
         return str(self)
+
+
+class CommunicationDirection:
+    READ = 0
+    WRITE = 1
+
+    def __str__(self) -> str:
+        if self == CommunicationDirection.READ:
+            return "READ"
+        elif self == CommunicationDirection.WRITE:
+            return "WRITE"
+        else:
+            return "UNKNOWN"
+        
+    def __repr__(self):
+        return str(self)
+
+
+class CommunicationInfo:
+    def __init__(self, timestamp, channel, fd, direction, size, content):
+        self.timestamp = timestamp
+        self.channel = channel
+        self.fd = fd
+        self.direction = direction
+        self.size = size
+        self.content = content
     
+    def __str__(self) -> str:
+        return f'CommunicationInfo(timestamp={self.timestamp}, channel={self.channel}, fd={self.fd}, direction={self.direction}, size={self.size}, content={self.content})'
+
+    def __repr__(self):
+        return str(self)
+
 
 class FileRights:
     
@@ -75,7 +124,7 @@ class FileRights:
         result += "r" if self.oread else "-"
         result += "w" if self.owrite else "-"
         result += "x" if self.oexec else "-"
-        return f'FileRights({result}, user={self.user}, group={self.group})'
+        return f'FileRights(user={self.user}   group={self.group}  {result})'
     
     def __repr__(self):
         return str(self)
@@ -94,17 +143,25 @@ class File:
     
 
 class OpenInfo:
-    def __init__(self, file, fd, mode, flags):
+    def __init__(self, open_time, close_time, file, fd, mode, flags):
+        self.open_time = open_time
+        self.close_time = close_time
         self.file = file
         self.fd = fd
         self.mode = mode
         self.flags = flags
 
     def __str__(self) -> str:
-        return f'OpenInfo(file={self.file} fd={self.fd}, mode={self.mode}, flags={self.flags})'
+        return f'OpenInfo(open_time={self.open_time}, close_time={self.close_time}, file={self.file}, fd={self.fd}, mode={self.mode}, flags={self.flags})'
     
     def __repr__(self):
         return str(self)
+
+
+class ParsingResult:
+    ERR_COULD_NOT_PARSE = 0
+    WARN_IGNORE_LINE = 1
+    OK = 2
 
 
 class IPCAModel:
@@ -127,8 +184,19 @@ class IPCAModel:
             self.processes.append(process)
         return process
 
+    def has_channel(self, channel):
+        for c in self.channels:
+            if c.name == channel.name:
+                return c
+        return None
+
     def add_or_get_channel(self, channel):
-        self.channels.append(channel)
+        old_channel = self.has_channel(channel)
+        if old_channel:
+            channel = old_channel
+        else:
+            self.channels.append(channel)
+        return channel
 
     def has_file(self, file):
         for f in self.files:

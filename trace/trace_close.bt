@@ -1,0 +1,27 @@
+
+
+#include <fcntl.h>
+
+tracepoint:syscalls:sys_enter_close
+/ curtask->parent->pid == $1 /
+{
+    @entered_close[pid] = 1;
+
+    @fd[pid] = args->fd;
+}
+
+
+tracepoint:syscalls:sys_exit_close
+/@entered_close[pid] == 1/
+{
+    printf("%ld---%s---%d---%d---%ld\n", nsecs, comm, pid, @fd[pid], args->ret);
+
+    delete(@entered_close[pid]);
+    delete(@fd[pid]);
+}
+
+END 
+{
+    clear(@entered_close);
+    clear(@fd);
+}

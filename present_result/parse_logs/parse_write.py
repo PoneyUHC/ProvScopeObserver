@@ -1,11 +1,9 @@
-
-from ipca_globals import GlobalModel, Process, File, OpenInfo, ParsingResult
+from ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo
 from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
-N_INFOS = 7
+N_INFOS = 6
 
-
-def parse_bpf_openat_logs(filename: str) -> bool:
+def parse_bpf_write_logs(filename: str) -> bool:
     lines = []
     with open(filename, 'r') as fin:
         lines = fin.readlines()[1:]
@@ -24,8 +22,7 @@ def parse_bpf_openat_logs(filename: str) -> bool:
     return True
 
 
-
-def parse_line(line: str) -> ParsingResult:
+def parse_line(line: str) -> bool:
 
     parts = line.strip().split(SPLIT_PATTERN)
     if len(parts) != N_INFOS:
@@ -38,19 +35,17 @@ def parse_line(line: str) -> ParsingResult:
         return ParsingResult.WARN_IGNORE_LINE
 
     pid = int(parts[2])
-    path = parts[3]
-    fd = int(parts[4])
-    mode = int(parts[5])
-    flags = int(parts[6])
+    fd = int(parts[3])
+    size = int(parts[4])
+    content = parts[5]
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
     
-    new_file = File(path, None)
-    file = GlobalModel.add_or_get_file(new_file)
+    new_channel = CommunicationChannel("Unknown", ChannelType.FIFO)
+    channel = GlobalModel.add_or_get_channel(new_channel)
 
-    open_info = OpenInfo(timestamp, -1, file, fd, mode, flags)
-    process.add_open_info(open_info)
-
+    communication_info = CommunicationInfo(timestamp, channel, fd, CommunicationDirection.WRITE, size, content)
+    process.add_communication_info(communication_info)
 
     return ParsingResult.OK

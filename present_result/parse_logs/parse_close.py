@@ -2,10 +2,10 @@
 from ipca_globals import GlobalModel, Process, File, OpenInfo, ParsingResult
 from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
-N_INFOS = 7
+N_INFOS = 5
 
 
-def parse_bpf_openat_logs(filename: str) -> bool:
+def parse_bpf_close_logs(filename: str) -> bool:
     lines = []
     with open(filename, 'r') as fin:
         lines = fin.readlines()[1:]
@@ -38,19 +38,13 @@ def parse_line(line: str) -> ParsingResult:
         return ParsingResult.WARN_IGNORE_LINE
 
     pid = int(parts[2])
-    path = parts[3]
-    fd = int(parts[4])
-    mode = int(parts[5])
-    flags = int(parts[6])
+    fd = int(parts[3])
+    ret = int(parts[4])
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
-    
-    new_file = File(path, None)
-    file = GlobalModel.add_or_get_file(new_file)
 
-    open_info = OpenInfo(timestamp, -1, file, fd, mode, flags)
-    process.add_open_info(open_info)
-
+    open_info = process.get_unclosed_open_info(fd)
+    open_info.close_time = timestamp
 
     return ParsingResult.OK
