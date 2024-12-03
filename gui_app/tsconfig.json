@@ -1,0 +1,17 @@
+{
+    "compilerOptions": {
+      "target": "ES6",
+      "rootDir": "./typescript/",
+      "outDir": "./src/",
+      "sourceMap": false,
+      "strict": true,
+      "moduleResolution": "node",
+    },
+    "exclude": [
+      "node_modules",
+      "build"
+    ],
+    "include": [
+        "./typescript/**/*.ts"
+    ]
+}
