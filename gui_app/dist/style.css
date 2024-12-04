@@ -23,3 +23,9 @@ body {
     background: white; 
     border: solid red 2px;
 }
+
+#setup-button {
+    width: 100px; 
+    height: 50px; 
+    background: rgb(146, 146, 216);
+}
