@@ -4,8 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "build": "tsc",
-    "start": "tsc --watch"
+    "build": "tsc --project ./tsconfig.json && npx webpack"
   },
   "dependencies": {
     "@types/events": "^3.0.3",

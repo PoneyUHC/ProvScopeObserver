@@ -13,3 +13,5 @@ __pycache__/
 **/output/
 
 node_modules/
+**/gui_app/dist/main.js
+**/gui_app/src/index.js

@@ -24,6 +24,6 @@ if (!textbox) {
 
 sigmaInstance.addListener('clickNode', function(e) {
   const node = e.node;
-  textbox.innerHTML += `Node ${node.toString()} clicked`;
+  textbox.innerHTML += `Node ${node.toString()} clicked</br>`;
 });
 

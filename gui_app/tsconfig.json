@@ -9,7 +9,7 @@
     },
     "exclude": [
       "node_modules",
-      "build"
+      "src"
     ],
     "include": [
         "./typescript/**/*.ts"
