@@ -3,11 +3,11 @@ build/
 
 **/*.gexf
 
-**/*.logs
+**/logs/
 
 .vscode
 
 venv/
 
-**/__pycache__/
-**/*.json
+__pycache__/
+**/output/
