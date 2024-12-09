@@ -1,5 +1,3 @@
-import networkx as nx
-import matplotlib.pyplot as plt
 
 from parse_logs.parse_openat import parse_bpf_openat_logs
 from parse_logs.parse_close import parse_bpf_close_logs
