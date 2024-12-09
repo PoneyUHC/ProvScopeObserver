@@ -31,7 +31,8 @@ class Process:
         for open_info in self.open_infos:
             if (open_info.fd == fd 
                 and open_info.open_time <= timestamp 
-                and open_info.close_time > timestamp):
+                and (open_info.close_time > timestamp 
+                     or open_info.close_time == -1)):
                 return open_info
         return None
 
@@ -62,8 +63,12 @@ class CommunicationChannel:
 
     def __str__(self) -> str:
         return f'CommunicationChannel(name={self.name}, type={self.type})'
+    
     def __repr__(self):
         return str(self)
+    
+    def __eq__(self, other):
+        return self.name == other.name and self.type == other.type
 
 
 class CommunicationDirection:
@@ -190,13 +195,8 @@ class IPCAModel:
                 return c
         return None
 
-    def add_or_get_channel(self, channel):
-        old_channel = self.has_channel(channel)
-        if old_channel:
-            channel = old_channel
-        else:
-            self.channels.append(channel)
-        return channel
+    def add_channel(self, channel):
+        self.channels.append(channel)
 
     def has_file(self, file):
         for f in self.files:

@@ -13,6 +13,8 @@ from ipca_globals import GlobalModel, Process, File, OpenInfo, CommunicationChan
 import json
 from json import JSONEncoder
 
+from pathlib import Path
+
 O_RDONLY = 0
 O_WRONLY = 1
 O_RDWR = 2
@@ -39,5 +41,8 @@ parse_bpf_write_logs("trace/logs/trace_write.logs")
 
 unify_bpf_logs()
 
+
+Path("present_result/output").mkdir(parents=True, exist_ok=True)
+
 with open("present_result/output/model.json", "w") as f:
-    f.write(json.dumps(GlobalModel, indent=2, cls=MyEncoder))
+    f.write(json.dumps(GlobalModel, indent=4, cls=MyEncoder))

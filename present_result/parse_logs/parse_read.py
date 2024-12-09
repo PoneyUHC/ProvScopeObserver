@@ -42,8 +42,8 @@ def parse_line(line: str) -> bool:
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
     
-    new_channel = CommunicationChannel("Unknown", ChannelType.FIFO)
-    channel = GlobalModel.add_or_get_channel(new_channel)
+    channel = CommunicationChannel("Unknown", ChannelType.FIFO)
+    GlobalModel.add_channel(channel)
 
     communication_info = CommunicationInfo(timestamp, channel, fd, CommunicationDirection.READ, size, content)
     process.add_communication_info(communication_info)

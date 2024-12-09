@@ -4,6 +4,17 @@ def unify_bpf_logs():
     for process in GlobalModel.processes:
         for communication_info in process.communication_infos:
             fd = communication_info.fd
+
+            if fd == 0:
+                communication_info.channel.name = f"{process.name}-{process.pid}-STDIN"
+                continue
+            elif fd == 1:
+                communication_info.channel.name = f"{process.name}-{process.pid}-STDOUT"
+                continue
+            elif fd == 2:
+                communication_info.channel.name = f"{process.name}-{process.pid}-STDERR"
+                continue
+
             timestamp = communication_info.timestamp
 
             open_info = process.get_open_info_at_time(fd, timestamp)
@@ -16,3 +27,19 @@ def unify_bpf_logs():
                 continue
 
             communication_info.channel.name = open_info.file.path
+
+    
+    # remove duplicate channels
+    new_channels = []
+    for process in GlobalModel.processes:
+        for communication_info in process.communication_infos:
+            channel = communication_info.channel
+            if channel in new_channels:
+                communication_info.channel = new_channels[new_channels.index(channel)]
+            else:
+                new_channels.append(channel)
+            
+    GlobalModel.channels = new_channels
+
+
+    # patch stdin / stdout infos to retrieve the correct files (at bpftrace time)
