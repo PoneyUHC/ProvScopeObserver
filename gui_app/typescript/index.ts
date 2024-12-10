@@ -19,9 +19,8 @@ const dummyModel = ` {
 }`;
 
 
-function parseModel(model: string): any {
-  return JSON.parse(model);
-}
+var global_model_filename: string;
+var global_model: JSON;
 
 
 function createGraph(model: any) {
@@ -35,15 +34,60 @@ function createGraph(model: any) {
 }
 
 
-function fillGraphContainer() {
+function getFileContent() {
+  var input = document.createElement('input');
+  input.type = 'file';
+
+  input.onchange = e => { 
+
+    if (! e.target){
+      return;
+    }
+
+    var inputElement = e.target as HTMLInputElement;
+    if (!inputElement || !inputElement.files) {
+      throw new Error("File input or files not found");
+    }
+    
+    var file = inputElement.files[0];
+    
+    if( !file ){
+      throw new Error("File not found");
+    }
+    
+    global_model_filename = file.name;
+
+    const filename_textbox = document.getElementById("filename");
+    if (!filename_textbox) {
+      throw new Error("Filename textbox not found");
+    }
+
+    filename_textbox.innerHTML = `Current file : ${global_model_filename}`;
+
+    
+    var reader = new FileReader();
+    reader.readAsText(file,'UTF-8');
+
+
+    reader.onload = readerEvent => {
+        var content = readerEvent.target?.result;
+        global_model = JSON.parse(content as string);
+    }
+
+  }
+
+  input.click();
+}
+
+
+async function fillGraphContainer() {
+
   const graph_container = document.getElementById("graph-container");
   if (!graph_container) {
     throw new Error("Graph container not found");
   }
 
-  const model = parseModel(dummyModel);
-
-  const graph = createGraph(model);
+  const graph = createGraph(global_model);
   var sigmaInstance = new SIGMA.Sigma(graph, graph_container);
 
   const textbox = document.getElementById('textbox');
@@ -55,11 +99,13 @@ function fillGraphContainer() {
     const node = e.node;
     textbox.innerHTML += `${node.toString()} clicked</br>`;
   });
-
 }
 
-const button = document.getElementById("setup-button");
-button?.addEventListener("click", () => fillGraphContainer());
+const setup_button = document.getElementById("setup-button");
+setup_button?.addEventListener("click", () => fillGraphContainer());
+
+const load_button = document.getElementById("load-button");
+load_button?.addEventListener("click", () => getFileContent());
 
 
 
