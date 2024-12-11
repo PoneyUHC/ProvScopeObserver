@@ -1,2 +1,2 @@
-IGNORE_PATTERN = ['sleep', 'run.bash', 'sudo', 'python3']
+IGNORE_PATTERN = ['sleep', 'exec.bash', 'sudo', 'python3']
 SPLIT_PATTERN = "---"
