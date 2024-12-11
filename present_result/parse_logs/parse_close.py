@@ -1,5 +1,5 @@
 
-from ipca_globals import GlobalModel, Process, File, OpenInfo, ParsingResult
+from ipca_globals import GlobalModel, Process, ParsingResult, CloseEvent
 from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 N_INFOS = 5
@@ -25,7 +25,7 @@ def parse_bpf_close_logs(filename: str) -> bool:
 
 
 
-def parse_line(line: str) -> ParsingResult:
+def parse_line(line: str) -> int:
 
     parts = line.strip().split(SPLIT_PATTERN)
     if len(parts) != N_INFOS:
@@ -46,5 +46,8 @@ def parse_line(line: str) -> ParsingResult:
 
     open_info = process.get_unclosed_open_info(fd)
     open_info.close_time = timestamp
+    
+    event = CloseEvent(timestamp, f"{process.name}-{process.pid} closes fd {fd}", process, fd)
+    GlobalModel.add_event(event)
 
     return ParsingResult.OK

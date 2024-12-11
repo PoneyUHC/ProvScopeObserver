@@ -43,3 +43,8 @@ def unify_bpf_logs():
 
 
     # patch stdin / stdout infos to retrieve the correct files (at bpftrace time)
+    # TODO
+    
+    
+def sort_events():
+    GlobalModel.events.sort(key=lambda event: event.timestamp)

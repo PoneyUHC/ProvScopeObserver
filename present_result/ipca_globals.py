@@ -167,6 +167,82 @@ class ParsingResult:
     ERR_COULD_NOT_PARSE = 0
     WARN_IGNORE_LINE = 1
     OK = 2
+    
+    
+class Event:
+    
+    def __init__(self, timestamp, description):
+        self.timestamp = timestamp
+        self.description = description
+        
+    def __str__(self) -> str:
+        return f'Event(timestamp={self.timestamp}, description={self.description})'
+    
+    def __repr__(self):
+        return str(self)
+    
+
+class OpenEvent(Event):
+    
+    def __init__(self, timestamp, description, process, file, fd, mode, flags):
+        super().__init__(timestamp, description)
+        self.process = process
+        self.file = file
+        self.fd = fd
+        self.mode = mode
+        self.flags = flags
+        
+    def __str__(self) -> str:
+        return f'OpenEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, file={self.file}, fd={self.fd}, mode={self.mode}, flags={self.flags})'
+    
+    def __repr__(self):
+        return str(self)
+    
+
+class CloseEvent(Event):
+    
+    def __init__(self, timestamp, description, process, fd):
+        super().__init__(timestamp, description)
+        self.process = process
+        self.fd = fd
+        
+    def __str__(self) -> str:
+        return f'CloseEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd})'
+    
+    def __repr__(self):
+        return str(self)
+    
+    
+class ReadEvent(Event):
+    
+    def __init__(self, timestamp, description, process, fd, size, content):
+        super().__init__(timestamp, description)
+        self.process = process
+        self.fd = fd
+        self.size = size
+        self.content = content
+        
+    def __str__(self) -> str:
+        return f'ReadEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content})'
+    
+    def __repr__(self):
+        return str(self)
+    
+    
+class WriteEvent(Event):
+        
+    def __init__(self, timestamp, description, process, fd, size, content):
+        super().__init__(timestamp, description)
+        self.process = process
+        self.fd = fd
+        self.size = size
+        self.content = content
+        
+    def __str__(self) -> str:
+        return f'WriteEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content})'
+    
+    def __repr__(self):
+        return str(self)
 
 
 class IPCAModel:
@@ -174,6 +250,7 @@ class IPCAModel:
         self.processes = []
         self.channels = []
         self.files = []
+        self.events = []
 
     def has_process(self, pid):
         for p in self.processes:
@@ -211,6 +288,9 @@ class IPCAModel:
         else:
             self.files.append(file)
         return file
+    
+    def add_event(self, event):
+        self.events.append(event)
 
     def __str__(self) -> str:
         return f'IPCAModel(processes={self.processes}, channels={self.channels}, files={self.files})'

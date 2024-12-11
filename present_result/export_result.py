@@ -4,7 +4,7 @@ from parse_logs.parse_close import parse_bpf_close_logs
 from parse_logs.parse_read import parse_bpf_read_logs
 from parse_logs.parse_write import parse_bpf_write_logs
 
-from postprocess_parse import unify_bpf_logs
+from postprocess_parse import unify_bpf_logs, sort_events
 
 from ipca_globals import GlobalModel, Process, File, OpenInfo, CommunicationChannel
 
@@ -38,7 +38,7 @@ parse_bpf_read_logs("trace/logs/trace_read.logs")
 parse_bpf_write_logs("trace/logs/trace_write.logs")
 
 unify_bpf_logs()
-
+sort_events()
 
 Path("present_result/output").mkdir(parents=True, exist_ok=True)
 

@@ -1,4 +1,4 @@
-from ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo
+from ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, ReadEvent
 from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 N_INFOS = 6
@@ -22,7 +22,7 @@ def parse_bpf_read_logs(filename: str) -> bool:
     return True
 
 
-def parse_line(line: str) -> bool:
+def parse_line(line: str) -> int:
 
     parts = line.strip().split(SPLIT_PATTERN)
     if len(parts) != N_INFOS:
@@ -47,5 +47,8 @@ def parse_line(line: str) -> bool:
 
     communication_info = CommunicationInfo(timestamp, channel, fd, CommunicationDirection.READ, size, content)
     process.add_communication_info(communication_info)
+    
+    event = ReadEvent(timestamp, f"{process.name}-{process.pid} reads from fd {fd}", process, fd, size, content)
+    GlobalModel.add_event(event)
 
     return ParsingResult.OK
