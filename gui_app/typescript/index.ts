@@ -1,6 +1,7 @@
 import * as SIGMA from "sigma";
 import * as GRAPH from "graphology";
 
+
 const dummyModel = ` {
   "processes": [
     {
@@ -26,8 +27,20 @@ var global_model: JSON;
 function createGraph(model: any) {
   const graph = new GRAPH.UndirectedGraph();
 
+  for (const file of model.files) {
+    var file_label = file.path;
+    graph.addNode(file_label, {x:Math.random(), y:Math.random(), size:10, color:"green", label: file_label});
+  }
+
   for (const process of model.processes) {
-    graph.addNode(`${process.pid}-${process.name}`, {x:Math.random(), y:Math.random(), size:10, color:"red"});  
+    var process_label = `${process.pid}-${process.name}`;
+    graph.addNode(process_label, {x:Math.random(), y:Math.random(), size:10, color:"red", label: process_label});  
+    
+    for (const open_info of process.open_infos) {
+      const file = model.files[open_info.file];
+      var file_label = file.path;
+      graph.addEdge(process_label, file_label, {color:"black"});
+    }
   }
 
   return graph;
@@ -64,7 +77,7 @@ function getFileContent() {
 
     filename_textbox.innerHTML = `Current file : ${global_model_filename}`;
 
-    
+
     var reader = new FileReader();
     reader.readAsText(file,'UTF-8');
 
@@ -89,6 +102,7 @@ async function fillGraphContainer() {
 
   const graph = createGraph(global_model);
   var sigmaInstance = new SIGMA.Sigma(graph, graph_container);
+  var dragListener = new sigmaInstance.
 
   const textbox = document.getElementById('textbox');
   if (!textbox) {

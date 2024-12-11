@@ -23,7 +23,7 @@ body {
 
 #textbox {
     background-color: white;
-    background-image: url("/gui_app/dist/goldo.png");
+    background-image: url("./goldo.png");
     background-size: cover;
     border-radius: 40px;
     width: 800px;
