@@ -49,8 +49,7 @@ body {
     height: 80%;
     border-radius: 40px;
     background: rgb(221, 221, 221);
-    padding-left: auto;
-    margin-left: 10%;
+    margin-left: 20%;
 }
 
 #ui-panel-div div {
@@ -59,7 +58,7 @@ body {
     border-radius: 20px;
     background: rgb(221, 221, 221);
     padding-left: 20px;
-    margin-left: 10%;
+    margin-left: 10px;
     display: flex;
     align-items: center;
 }

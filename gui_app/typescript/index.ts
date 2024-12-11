@@ -39,7 +39,7 @@ function createGraph(model: any) {
         for (const open_info of process.open_infos) {
             const file = model.files[open_info.file];
             var file_label = file.path;
-            graph.addEdge(process_label, file_label, { color: "black" });
+            graph.addEdge(process_label, file_label, { color: "black", type: 'arrow'});
         }
     }
 
