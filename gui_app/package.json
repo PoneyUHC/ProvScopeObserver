@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "build": "tsc --project ./tsconfig.json && npx webpack"
+    "build": "tsc --project ./tsconfig.json && npx webpack --mode='development'"
   },
   "dependencies": {
     "@types/events": "^3.0.3",
