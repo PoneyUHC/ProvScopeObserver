@@ -2,7 +2,7 @@
 
 export BPFTRACE_MAX_STRLEN=90
 
-CLOSE_STDIN=< /dev/null
+CLOSE_STDIN= 0<&-
 
 ARGS=$$
 PROGRAMS_DIR=programs
@@ -23,8 +23,8 @@ cleanup() {
     already_cleaned=1
 }
 
-
 trap 'cleanup' EXIT
+
 
 make -C $PROGRAMS_DIR
 
@@ -36,7 +36,7 @@ sudo bpftrace $BPF_SCRIPTS_DIR/trace_close.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR
 sudo bpftrace $BPF_SCRIPTS_DIR/trace_write.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_write.logs $CLOSE_STDIO &
 sudo bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_read.logs $CLOSE_STDIO &
 
-sleep 2
+sleep 1
 
 cd $BINARIES_DIR
 # order matters for fifo openings
@@ -51,7 +51,6 @@ sleep 0.5
 
 cd -
 python3 evaluator_interface/auto_attacker.py evaluator_interface/scenario.json
-
 
 cleanup
 
