@@ -1,14 +1,6 @@
 #! /bin/bash
 
-export BPFTRACE_MAX_STRLEN=90
-
-CLOSE_STDIN= 0<&-
-
-ARGS=$$
-PROGRAMS_DIR=programs
-BINARIES_DIR=$PROGRAMS_DIR/build/exec
-BPF_SCRIPTS_DIR=trace
-BPF_LOGS_DIR=trace/logs
+source ./scripts/config.bash
 
 [ ! -d $BPF_LOGS_DIR ] && mkdir -p $BPF_LOGS_DIR
 
@@ -24,9 +16,6 @@ cleanup() {
 }
 
 trap 'cleanup' EXIT
-
-
-make -C $PROGRAMS_DIR
 
 # get the sudo confirmation before the ones backgrounding
 sudo true
@@ -48,6 +37,7 @@ sleep 0.5
 sleep 0.5
 ./router.bin run/att_r run/r_a1 run/r_a2 run/logs > run/router.logs&
 sleep 0.5
+
 
 cd -
 python3 evaluator_interface/auto_attacker.py evaluator_interface/scenario.json
