@@ -163,10 +163,13 @@ function initSigma() {
     if (!graph_container) {
         throw new Error("Graph container not found");
     }
-
+    
     const graph = new GRAPH.DirectedGraph();
+
     global_sigma_instance?.kill();
     global_sigma_instance = new SIGMA.Sigma(graph, graph_container);
+
+    setupDragDrop(global_sigma_instance, graph);
 
     return graph;
 }
@@ -183,6 +186,52 @@ function fillGraphContainer() {
     }
 
     fillWithEvents(global_model, <HTMLDivElement>event_container)
+}
+
+
+function setupDragDrop(renderer: SIGMA.Sigma, graph: GRAPH.DirectedGraph) {
+    
+    let draggedNode: string | null = null;
+    let isDragging = false;
+
+    // On mouse down on a node
+    //  - we enable the drag mode
+    //  - save in the dragged node in the state
+    //  - highlight the node
+    //  - disable the camera so its state is not updated
+    renderer.on("downNode", (e) => {
+    isDragging = true;
+    draggedNode = e.node;
+    graph.setNodeAttribute(draggedNode, "highlighted", true);
+    if (!renderer.getCustomBBox()) renderer.setCustomBBox(renderer.getBBox());
+    });
+
+    // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
+    renderer.on("moveBody", ({ event }) => {
+    if (!isDragging || !draggedNode) return;
+
+    // Get new position of node
+    const pos = renderer.viewportToGraph(event);
+
+    graph.setNodeAttribute(draggedNode, "x", pos.x);
+    graph.setNodeAttribute(draggedNode, "y", pos.y);
+
+    // Prevent sigma to move camera:
+    event.preventSigmaDefault();
+    event.original.preventDefault();
+    event.original.stopPropagation();
+    });
+
+    // On mouse up, we reset the dragging mode
+    const handleUp = () => {
+    if (draggedNode) {
+        graph.removeNodeAttribute(draggedNode, "highlighted");
+    }
+    isDragging = false;
+    draggedNode = null;
+    };
+    renderer.on("upNode", handleUp);
+    renderer.on("upStage", handleUp);
 }
 
 const setup_button = document.getElementById("setup-button");
