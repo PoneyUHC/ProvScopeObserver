@@ -172,6 +172,7 @@ class ParsingResult:
 class Event:
     
     def __init__(self, timestamp, description):
+        self.event_type = type(self).__name__
         self.timestamp = timestamp
         self.description = description
         
