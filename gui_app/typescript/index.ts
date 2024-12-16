@@ -1,6 +1,8 @@
 import * as SIGMA from "sigma";
 import * as GRAPH from "graphology";
 
+import FA2Layout from "graphology-layout-forceatlas2"
+
 
 const dummyModel = ` {
     "processes": [
@@ -25,7 +27,7 @@ interface EventButton {
     button : HTMLButtonElement;
 }
 
-
+var global_event_button_container: HTMLDivElement;
 var global_model_filename: string;
 var global_model: any;
 var global_event_button_list: Array<EventButton> = [];
@@ -213,6 +215,7 @@ function setGraphToEvent(event_id: number) {
         if (id == event_id) {
             highlightCallback();
             event_button.button.style.background = 'red'
+
             break;
         }
         id += 1;
@@ -227,7 +230,7 @@ function setGraphToEvent(event_id: number) {
 }
 
 
-function fillWithEventButtons(global_model: any, event_container: HTMLDivElement) {
+function fillWithEventButtons(global_model: any) {
 
     var id = 0;
     for(const event of global_model.events) {
@@ -237,8 +240,11 @@ function fillWithEventButtons(global_model: any, event_container: HTMLDivElement
 
         let button = event_button.button
         button.innerHTML = event.description;
-        button.onclick = (staticValue => () => setGraphToEvent(staticValue))(id);
-        event_container.appendChild(button);
+        button.onclick = (staticValue => () => {
+            setGraphToEvent(staticValue.id);
+            global_event_button_container.scrollTo(0, staticValue.button.offsetTop - global_event_button_container.clientHeight / 2)
+        })({id: id, button: button});
+        global_event_button_container.appendChild(button);
 
         id += 1;
     }
@@ -267,12 +273,16 @@ function fillGraphContainer() {
     const graph = initSigma();
     fillGraphFromModel(graph, global_model);
 
-    const event_container = document.getElementById('event-container');
-    if (!event_container) {
+    FA2Layout.assign(graph, {iterations: 50});
+
+    const event_button_container = document.getElementById('event-container');
+    if (!event_button_container) {
         throw new Error("Event container not found");
     }
 
-    fillWithEventButtons(global_model, <HTMLDivElement>event_container)
+    global_event_button_container = <HTMLDivElement>event_button_container
+
+    fillWithEventButtons(global_model);
 }
 
 
@@ -336,11 +346,17 @@ document.addEventListener(
         console.log(keyName);
     
         if(keyName === "ArrowLeft") {
-            setGraphToEvent(global_current_event_index - 1)
+            if(global_current_event_index-1 < 0){
+                return;
+            }
+            global_event_button_list[global_current_event_index-1].button.click()
         }
 
         if( keyName === "ArrowRight") {
-            setGraphToEvent(global_current_event_index + 1)
+            if(global_current_event_index+1 >= global_event_button_list.length){
+                return;
+            }
+            global_event_button_list[global_current_event_index+1].button.click()
         }
     },
     false,
