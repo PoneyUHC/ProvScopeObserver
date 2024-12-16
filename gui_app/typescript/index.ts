@@ -20,12 +20,19 @@ const dummyModel = ` {
 }`;
 
 
+interface EventButton {
+    event : JSON;
+    button : HTMLButtonElement;
+}
+
+
 var global_model_filename: string;
 var global_model: any;
-var global_event_list: Array<JSON> = [];
+var global_event_button_list: Array<EventButton> = [];
+var global_current_event_index = 0;
 var global_sigma_instance: SIGMA.Sigma | null = null;
 
-function fillGraphFromModel(graph: GRAPH.DirectedGraph ,model: any) {
+function fillGraphFromModel(graph: GRAPH.DirectedGraph, model: any) {
 
     for (const file of model.files) {
         var file_label = file.path;
@@ -41,7 +48,28 @@ function fillGraphFromModel(graph: GRAPH.DirectedGraph ,model: any) {
             var file_label = file.path;
             graph.addEdge(process_label, file_label, { color: "black", type: 'arrow'});
         }
+
+        for (const [i, channel] of model.channels.entries()) {
+            var channel_label = channel.name;
+    
+            if( !graph.hasNode(channel_label) ){
+                graph.addNode(channel_label, { x: Math.random(), y: Math.random(), size: 10, color: "blue", label: channel_label });
+            }
+
+            for (const comm_info of process.communication_infos) {
+                if (comm_info.channel === i) {
+                    if ( !graph.hasEdge(process_label, channel_label) ){
+                        var edge = graph.addEdge(process_label, channel_label, { size: 3, color: "black", type: 'arrow'});
+                        graph.setEdgeAttribute(edge, "definitive", true);
+                        graph.setEdgeAttribute(edge, "fd", 1);
+                        graph.setEdgeAttribute(edge, "is_opened", true);
+                    }
+                }
+            }
+        }
     }
+
+    
 }
 
 
@@ -105,10 +133,10 @@ function addFilesToGraph(graph: GRAPH.DirectedGraph, model: any) {
     }
 }
 
-
-function applyEventToGraph(event: any) {
+function applyEventToGraph(event: any) : () => void {
 
     var graph = global_sigma_instance?.getGraph();
+    var highlightCallback: () => void = () => {};
 
     switch (event.event_type) {
         case "OpenEvent":
@@ -117,41 +145,100 @@ function applyEventToGraph(event: any) {
             var file = global_model.files[event.file];
             var process_label = `${process.pid}-${process.name}`;
             var file_label = file.path;
-            graph?.addEdge(process_label, file_label, { color: "blue", type: 'arrow'});
+            var edge = graph?.addEdge(process_label, file_label, { size: 3, color: "blue", type: 'arrow'});
+            graph?.setEdgeAttribute(edge, "fd", event.fd);
+            graph?.setEdgeAttribute(edge, "is_opened", true);
             break;
+
+        case "CloseEvent":
+            console.log("CloseEvent");
+            var process = global_model.processes[event.process];
+            var process_label = `${process.pid}-${process.name}`;
+            var edge = graph?.findEdge((_, edgeAttribs, source) => source === process_label && edgeAttribs.fd === event.fd && edgeAttribs.is_opened);
+            graph?.setEdgeAttribute(edge, "color", "lightgrey");
+            graph?.setEdgeAttribute(edge, "is_opened", false);
+            break;
+
+        case "ReadEvent":
+            console.log("ReadEvent");
+            var process = global_model.processes[event.process];
+            var process_label = `${process.pid}-${process.name}`;
+            var edge = graph?.findEdge((_, edgeAttribs, source) => source === process_label && edgeAttribs.fd === event.fd && edgeAttribs.is_opened);
+            highlightCallback = () => graph?.setEdgeAttribute(edge, "color", "green");
+            break;
+
+        case "WriteEvent":
+            console.log("WriteEvent");
+            var process = global_model.processes[event.process];
+            var process_label = `${process.pid}-${process.name}`;
+            var edge = graph?.findEdge((_, edgeAttribs, source) => source === process_label && edgeAttribs.fd === event.fd && edgeAttribs.is_opened);
+            highlightCallback = () => graph?.setEdgeAttribute(edge, "color", "red");
+            break;
+        
     }
 
+    return highlightCallback
+
+}
+
+
+function cleanGraph() {
+    const graph = global_sigma_instance?.getGraph();
+    var edges_to_keep = graph?.filterDirectedEdges((_, edgeAttribs) => edgeAttribs.definitive);
+
+    for (const edge of graph?.edges()! ) {
+        if( edges_to_keep?.includes(edge) ) {
+            graph?.setEdgeAttribute(edge, "color", "black");
+        } else {
+            graph?.dropEdge(edge);
+        }
+    }
 }
 
 function setGraphToEvent(event_id: number) {
 
-    const graph = global_sigma_instance?.getGraph();
-    graph?.clearEdges();
+    if(event_id < 0 || event_id >= global_event_button_list.length) {
+        return
+    }
+
+    cleanGraph();
+
+    var highlightCallback = () => {};
 
     var id = 0;
-    for (const event of global_event_list) {
-        applyEventToGraph(event);
+    for (const event_button of global_event_button_list) {
+        highlightCallback = applyEventToGraph(event_button.event);
+        event_button.button.style.background = 'grey'
         
         if (id == event_id) {
+            highlightCallback();
+            event_button.button.style.background = 'red'
             break;
         }
         id += 1;
     }
 
+    for (const event_button of global_event_button_list.slice(id+1)) {
+        event_button.button.style.background = 'lightgrey'
+    }
+
+    global_current_event_index = id;
     global_sigma_instance?.refresh();
 }
 
 
-function fillWithEvents(global_model:any, event_container: HTMLDivElement) {
+function fillWithEventButtons(global_model: any, event_container: HTMLDivElement) {
 
     var id = 0;
     for(const event of global_model.events) {
 
-        global_event_list.push(event);
-        var event_button = document.createElement("button");
-        event_button.innerHTML = event.description;
-        event_button.onclick = (staticValue => () => setGraphToEvent(staticValue))(id);
-        event_container.appendChild(event_button);
+        let event_button: EventButton = {event: event, button: document.createElement("button")};
+        global_event_button_list.push(event_button);
+
+        let button = event_button.button
+        button.innerHTML = event.description;
+        button.onclick = (staticValue => () => setGraphToEvent(staticValue))(id);
+        event_container.appendChild(button);
 
         id += 1;
     }
@@ -185,7 +272,7 @@ function fillGraphContainer() {
         throw new Error("Event container not found");
     }
 
-    fillWithEvents(global_model, <HTMLDivElement>event_container)
+    fillWithEventButtons(global_model, <HTMLDivElement>event_container)
 }
 
 
@@ -240,6 +327,24 @@ setup_button?.addEventListener("click", () => fillGraphContainer());
 const load_button = document.getElementById("load-button");
 load_button?.addEventListener("click", () => getFileContent());
 
+
+document.addEventListener(
+    "keydown",
+    (event) => {
+        const keyName = event.key;
+
+        console.log(keyName);
+    
+        if(keyName === "ArrowLeft") {
+            setGraphToEvent(global_current_event_index - 1)
+        }
+
+        if( keyName === "ArrowRight") {
+            setGraphToEvent(global_current_event_index + 1)
+        }
+    },
+    false,
+);
 
 
 
