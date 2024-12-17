@@ -224,7 +224,7 @@ function setGraphToEvent(event_id: number) {
     }
 
     for (const event_button of global_event_button_list.slice(id+1)) {
-        event_button.button.style.background = 'lightgrey'
+        event_button.button.style.backgroundColor = 'lightgrey'
     }
 
     global_current_event_index = id;
@@ -235,6 +235,10 @@ function setGraphToEvent(event_id: number) {
 function fillWithEventButtons(global_model: any) {
 
     var id = 0;
+    global_event_button_list = [];
+    global_event_button_container.innerHTML = '';
+    global_event_button_container.scrollTo(0, 0);
+    
     for(const event of global_model.events) {
 
         let event_button: EventButton = {event: event, button: document.createElement("button")};
@@ -242,6 +246,7 @@ function fillWithEventButtons(global_model: any) {
 
         let button = event_button.button
         button.innerHTML = event.description;
+        button.style.backgroundColor = 'lightgrey';
         button.onclick = (staticValue => () => {
             setGraphToEvent(staticValue.id);
             global_event_button_container.scrollTo(0, staticValue.button.offsetTop - global_event_button_container.clientHeight / 2)
