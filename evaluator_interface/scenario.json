@@ -32,6 +32,16 @@
                     "payload" : "0f.00.00.00_01.00.00.00_68.65.6c.6c.6f.20.31"
                 }
             ]
+        },
+
+        {
+            "name" : "Request read and parse logs",
+            "interactions": [
+                {
+                    "target_index" : 1,
+                    "payload" : "00"
+                }
+            ]
         }
     ]
 }

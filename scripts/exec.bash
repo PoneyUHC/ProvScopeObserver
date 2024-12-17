@@ -42,6 +42,9 @@ sleep 0.5
 cd -
 python3 evaluator_interface/auto_attacker.py evaluator_interface/scenario.json
 
+echo "Kill this process when you would like to stop the monitoring..."
+sleep 1000
+
 cleanup
 
 # create report from logs
