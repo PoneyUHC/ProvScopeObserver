@@ -140,6 +140,7 @@ function applyEventToGraph(event: any) : () => void {
     var graph = global_sigma_instance?.getGraph();
     var highlightCallback: () => void = () => {};
 
+    console.log(event.event_type)
     switch (event.event_type) {
         case "OpenEvent":
             console.log("OpenEvent");
@@ -148,6 +149,7 @@ function applyEventToGraph(event: any) : () => void {
             var process_label = `${process.pid}-${process.name}`;
             var file_label = file.path;
             var edge = graph?.addEdge(process_label, file_label, { size: 3, color: "blue", type: 'arrow'});
+            console.log('here')
             graph?.setEdgeAttribute(edge, "fd", event.fd);
             graph?.setEdgeAttribute(edge, "is_opened", true);
             break;
@@ -198,7 +200,7 @@ function cleanGraph() {
 }
 
 function setGraphToEvent(event_id: number) {
-
+    
     if(event_id < 0 || event_id >= global_event_button_list.length) {
         return
     }
@@ -260,8 +262,9 @@ function initSigma() {
     const graph = new GRAPH.DirectedGraph();
 
     global_sigma_instance?.kill();
-    global_sigma_instance = new SIGMA.Sigma(graph, graph_container);
+    global_sigma_instance = new SIGMA.Sigma(graph, graph_container, {renderEdgeLabels: true});
 
+    setupRightClick(global_sigma_instance, graph);
     setupDragDrop(global_sigma_instance, graph);
 
     return graph;
@@ -285,6 +288,25 @@ function fillGraphContainer() {
     fillWithEventButtons(global_model);
 }
 
+function setupRightClick(renderer: SIGMA.Sigma, graph: GRAPH.DirectedGraph) {
+
+    let clickedNode: string | null = null;
+
+    renderer.on("rightClickNode", (e) => {
+        clickedNode = e.node;
+        graph.setNodeAttribute(clickedNode, "hidden", true);
+        e.preventSigmaDefault();
+        e.event.original.preventDefault();
+        e.event.original.stopPropagation();
+    })
+
+    renderer.on("rightClickStage", (e) => {
+        e.preventSigmaDefault();
+        e.event.original.preventDefault();
+        e.event.original.stopPropagation();
+    })
+}
+
 
 function setupDragDrop(renderer: SIGMA.Sigma, graph: GRAPH.DirectedGraph) {
     
@@ -297,35 +319,35 @@ function setupDragDrop(renderer: SIGMA.Sigma, graph: GRAPH.DirectedGraph) {
     //  - highlight the node
     //  - disable the camera so its state is not updated
     renderer.on("downNode", (e) => {
-    isDragging = true;
-    draggedNode = e.node;
-    graph.setNodeAttribute(draggedNode, "highlighted", true);
-    if (!renderer.getCustomBBox()) renderer.setCustomBBox(renderer.getBBox());
-    });
+            isDragging = true;
+            draggedNode = e.node;
+            graph.setNodeAttribute(draggedNode, "highlighted", true);
+            if (!renderer.getCustomBBox()) renderer.setCustomBBox(renderer.getBBox());
+        });
 
-    // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
-    renderer.on("moveBody", ({ event }) => {
-    if (!isDragging || !draggedNode) return;
+        // On mouse move, if the drag mode is enabled, we change the position of the draggedNode
+        renderer.on("moveBody", ({ event }) => {
+        if (!isDragging || !draggedNode) return;
 
-    // Get new position of node
-    const pos = renderer.viewportToGraph(event);
+        // Get new position of node
+        const pos = renderer.viewportToGraph(event);
 
-    graph.setNodeAttribute(draggedNode, "x", pos.x);
-    graph.setNodeAttribute(draggedNode, "y", pos.y);
+        graph.setNodeAttribute(draggedNode, "x", pos.x);
+        graph.setNodeAttribute(draggedNode, "y", pos.y);
 
-    // Prevent sigma to move camera:
-    event.preventSigmaDefault();
-    event.original.preventDefault();
-    event.original.stopPropagation();
+        // Prevent sigma to move camera:
+        event.preventSigmaDefault();
+        event.original.preventDefault();
+        event.original.stopPropagation();
     });
 
     // On mouse up, we reset the dragging mode
     const handleUp = () => {
-    if (draggedNode) {
-        graph.removeNodeAttribute(draggedNode, "highlighted");
-    }
-    isDragging = false;
-    draggedNode = null;
+        if (draggedNode) {
+            graph.removeNodeAttribute(draggedNode, "highlighted");
+        }
+        isDragging = false;
+        draggedNode = null;
     };
     renderer.on("upNode", handleUp);
     renderer.on("upStage", handleUp);
@@ -361,6 +383,8 @@ document.addEventListener(
     },
     false,
 );
+
+
 
 
 
