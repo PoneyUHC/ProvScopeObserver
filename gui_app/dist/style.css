@@ -15,22 +15,62 @@ body {
 
 #graph-container {
     border-radius: 40px;
-    width: 800px; 
-    height: 600px; 
+    width: 960px; 
+    height: 720px; 
     background: white;
     border: solid black 1px;
 }
 
-#textbox {
-    background-color: white;
-    background-image: url("./goldo.png");
-    background-size: cover;
+#event-container {
     border-radius: 40px;
-    width: 800px;
-    height: 600px; 
+    width: 960px;
+    height: 720px;
+    background: white;
     border: solid black 1px;
-    padding-top: 30px;
-    padding-left: 30px;
+    overflow: scroll;
+    display: flex;
+    flex-direction: column;
+}
+
+
+#images-container {
+    padding-top: 40px;
+    width: 100%; 
+    height: 100%; 
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    gap: 10px;
+}
+
+#goldo-container {
+    background-color: white;
+    background-size: cover;
+    background-image: url("./goldo.png");
+}
+
+#dogfire-container {
+    background-color: white;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-image: url("./dogfire.jpg");
+    background-position: center;
+}
+
+#cringe-container {
+    background-color: white;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-image: url("./cringe.png");
+    background-position: center;
+}
+
+
+#images-container div {
+    border-radius: 40px;
+    width: 600px;
+    height: 450px; 
+    border: solid black 1px;
 }
 
 #ui-panel-div {
@@ -49,8 +89,7 @@ body {
     height: 80%;
     border-radius: 40px;
     background: rgb(221, 221, 221);
-    padding-left: auto;
-    margin-left: 10%;
+    margin-left: 20%;
 }
 
 #ui-panel-div div {
@@ -59,7 +98,7 @@ body {
     border-radius: 20px;
     background: rgb(221, 221, 221);
     padding-left: 20px;
-    margin-left: 10%;
+    margin-left: 10px;
     display: flex;
     align-items: center;
 }
