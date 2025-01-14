@@ -1,4 +1,6 @@
-#! /bin/bash
+#!/bin/bash
+
+REPORT_FILENAME=$1
 
 source ./scripts/config.bash
 
@@ -48,4 +50,4 @@ sleep 1000
 cleanup
 
 # create report from logs
-python3 present_result/export_result.py
+python3 present_result/export_result.py $REPORT_FILENAME

@@ -4,7 +4,6 @@
         "programs/build/exec/run/att_r",
         "programs/build/exec/run/att_l"
     ],
-
     "actions" : [
         {
             "name" : "Send hello to A0",
