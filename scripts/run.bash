@@ -16,5 +16,5 @@ fi
 for ((i = 0 ; i < $n_exec ; i++ ));
 do
     ./scripts/build.bash
-    ./scripts/exec.bash report${i}.json ${wait_time}; 
+    ./scripts/exec.bash report${printf "%02d" $i}.json ${wait_time};
 done
