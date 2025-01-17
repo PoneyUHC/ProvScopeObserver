@@ -36,9 +36,9 @@ class MyEncoder(JSONEncoder):
 
 def main():
     
-    out_filename = 'model.json'
+    out_filename = 'report.json'
     if len(sys.argv) < 2:
-        print("No specified export filename, defaulting to 'model.json'")
+        print(f"No specified export filename, defaulting to {out_filename}")
     else:
         out_filename = sys.argv[1]
     
