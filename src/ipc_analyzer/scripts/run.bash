@@ -15,6 +15,5 @@ fi
 
 for ((i = 0 ; i < $n_exec ; i++ ));
 do
-    source ${SCRIPT_DIR}/build.bash
     source ${SCRIPT_DIR}/exec.bash report${i}.json ${wait_time}; 
 done

@@ -73,7 +73,7 @@ class TestScenario:
                 fd = self.fds[target]
                 fd.write(payload)
                 fd.flush()
-                print(f"Sent '{payload}' to {target}")
+                print(f"\tSent '{payload}' to {target}")
                 sleep(0.5)
         print("Done!")
 

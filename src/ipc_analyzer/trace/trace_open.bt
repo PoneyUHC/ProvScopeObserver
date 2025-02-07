@@ -2,7 +2,7 @@
 #include <fcntl.h>
 
 tracepoint:syscalls:sys_enter_openat
-/ curtask->parent->pid == $1 /
+/ comm == "target.bin" || comm == "router.bin" || comm == "log_collector.b" /
 {
     @entered_open[pid] = 1;
 

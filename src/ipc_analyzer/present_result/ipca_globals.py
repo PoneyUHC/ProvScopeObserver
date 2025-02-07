@@ -214,17 +214,33 @@ class CloseEvent(Event):
         return str(self)
     
     
-class ReadEvent(Event):
+class EnterReadEvent(Event):
     
-    def __init__(self, timestamp, description, process, fd, size, content):
+    def __init__(self, timestamp, description, process, fd, size):
+        super().__init__(timestamp, description)
+        self.process = process
+        self.fd = fd
+        self.size = size
+        
+    def __str__(self) -> str:
+        return f'EnterReadEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size})'
+    
+    def __repr__(self):
+        return str(self)
+    
+
+class ExitReadEvent(Event):
+    
+    def __init__(self, timestamp, description, process, fd, size, content, ret):
         super().__init__(timestamp, description)
         self.process = process
         self.fd = fd
         self.size = size
         self.content = content
+        self.ret = ret
         
     def __str__(self) -> str:
-        return f'ReadEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content})'
+        return f'ExitReadEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content}, ret={self.ret})'
     
     def __repr__(self):
         return str(self)

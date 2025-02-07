@@ -29,26 +29,23 @@ cleanup() {
 
 trap 'cleanup' EXIT
 
-# get the sudo confirmation before the ones backgrounding
 sudo true
-# sudo bpftrace --unsafe trace/trace_all_user_functions.bt $(realpath .)/programs/build/exec/router.bin -o trace/logs/trace_all_user_functions.logs&
-sudo bpftrace $BPF_SCRIPTS_DIR/trace_open.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_open.logs &
-sudo bpftrace $BPF_SCRIPTS_DIR/trace_close.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_close.logs &
-sudo bpftrace $BPF_SCRIPTS_DIR/trace_write.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_write.logs $CLOSE_STDIO &
-sudo bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/trace_read.logs $CLOSE_STDIO &
+
+python3 ${BPF_SCRIPTS_DIR}/trace.py ${ARGS} &
 
 sleep 1
 
 python3 ${PROGRAMS_DIR}/run.py &
 
+sleep 2
 
 python3 ${SRC_DIR}/evaluator_interface/auto_attacker.py ${SRC_DIR}/evaluator_interface/scenario.json
+
+echo "Finished interaction, keeping running for ${WAIT_TIME} more seconds"
+echo "Ctrl+C this process when you would like to stop the monitoring..."
+sleep ${WAIT_TIME}
 
 cleanup
 
 # create report from logs
-python3 ${SRC_DIR}/present_result/export_result.py $REPORT_FILENAME
-
-echo "Finished interaction, keeping running for $WAIT_TIME more seconds"
-echo "Ctrl+C this process when you would like to stop the monitoring..."
-sleep $WAIT_TIME
+python3 ${SRC_DIR}/present_result/export_result.py ${REPORT_FILENAME}

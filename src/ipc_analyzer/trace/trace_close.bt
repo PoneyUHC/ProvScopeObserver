@@ -3,7 +3,7 @@
 #include <fcntl.h>
 
 tracepoint:syscalls:sys_enter_close
-/ curtask->parent->pid == $1 /
+/ comm == "target.bin" || comm == "router.bin" || comm == "log_collector.b" /
 {
     @entered_close[pid] = 1;
 

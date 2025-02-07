@@ -1,6 +1,6 @@
 
 tracepoint:syscalls:sys_enter_write
-/ curtask->parent->pid == $1 /
+/ comm == "target.bin" || comm == "router.bin" || comm == "log_collector.b" /
 {
     @entered_write[pid] = 1;
 

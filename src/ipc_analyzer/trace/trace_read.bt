@@ -1,6 +1,6 @@
 
 tracepoint:syscalls:sys_enter_read
-/ curtask->parent->pid == $1 /
+/ comm == "target.bin" || comm == "router.bin" || comm == "log_collector.b" /
 {
     @entered_read[pid] = 1;
 
@@ -9,15 +9,15 @@ tracepoint:syscalls:sys_enter_read
     @count[pid] = args->count;
 
     @size[pid] = @count[pid] > 128 ? 128 : @count[pid];
+
+    printf("enter---%ld---%s---%d---%d---%d\n", nsecs, comm, pid, @fd[pid], @count[pid]);
 }
 
 
 tracepoint:syscalls:sys_exit_read
 / @entered_read[pid] == 1 /
 {
-    $ret = args->ret;
-
-    printf("%ld---%s---%d---%d---%d---%r\n", nsecs, comm, pid, @fd[pid], @count[pid], buf(@buf[pid], @size[pid]));
+    printf("exit---%ld---%s---%d---%d---%d---%r---%d\n", nsecs, comm, pid, @fd[pid], @count[pid], buf(@buf[pid], @size[pid]), args->ret);
 
     delete(@entered_read[pid]);
     delete(@fd[pid]);

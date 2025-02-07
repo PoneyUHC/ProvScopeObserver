@@ -1,7 +1,8 @@
-from ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, ReadEvent
+from ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, EnterReadEvent, ExitReadEvent
 from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
-N_INFOS = 6
+N_INFOS_ENTER = 6
+N_INFOS_EXIT = 8
 
 def parse_bpf_read_logs(filename: str) -> bool:
     lines = []
@@ -25,30 +26,31 @@ def parse_bpf_read_logs(filename: str) -> bool:
 def parse_line(line: str) -> int:
 
     parts = line.strip().split(SPLIT_PATTERN)
-    if len(parts) != N_INFOS:
+    if len(parts) not in [N_INFOS_ENTER, N_INFOS_EXIT]:
         return ParsingResult.ERR_COULD_NOT_PARSE
 
-    timestamp = int(parts[0])
-    name = parts[1]
+    is_exit = parts[0] == 'exit'
+
+    timestamp = int(parts[1])
+    name = parts[2]
 
     if any(name == ignore for ignore in IGNORE_PATTERN):
         return ParsingResult.WARN_IGNORE_LINE
 
-    pid = int(parts[2])
-    fd = int(parts[3])
-    size = int(parts[4])
-    content = parts[5]
+    pid = int(parts[3])
+    fd = int(parts[4])
+    size = int(parts[5])
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
-    
-    channel = CommunicationChannel("Unknown", ChannelType.FIFO)
-    GlobalModel.add_channel(channel)
 
-    communication_info = CommunicationInfo(timestamp, channel, fd, CommunicationDirection.READ, size, content)
-    process.add_communication_info(communication_info)
     
-    event = ReadEvent(timestamp, f"{process.name}-{process.pid} reads from fd {fd}", process, fd, size, content)
+    if is_exit:
+        content = parts[6]
+        ret = parts[7]
+        event = ExitReadEvent(timestamp, f"{process.name}-{process.pid} finishes reading from fd {fd}", process, fd, size, content, ret)
+    else:
+        event = EnterReadEvent(timestamp, f"{process.name}-{process.pid} starts reading from fd {fd}", process, fd, size)
+    
     GlobalModel.add_event(event)
-
     return ParsingResult.OK
