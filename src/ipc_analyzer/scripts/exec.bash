@@ -1,5 +1,9 @@
 #!/bin/bash
 
+
+SCRIPT_DIR="$(dirname "$0")"
+source ${SCRIPT_DIR}/common.bash
+
 if [ $# -lt 2 ]
     then
         echo "Usage : $0 [report_filename] [wait_time]"
@@ -8,8 +12,7 @@ fi
 
 REPORT_FILENAME=$1
 WAIT_TIME=$2
-
-source ./scripts/config.bash
+ARGS=$$
 
 [ ! -d $BPF_LOGS_DIR ] && mkdir -p $BPF_LOGS_DIR
 
@@ -36,25 +39,15 @@ sudo bpftrace $BPF_SCRIPTS_DIR/trace_read.bt $ARGS $CLOSE_STDIN > $BPF_LOGS_DIR/
 
 sleep 1
 
-cd $BINARIES_DIR
-# order matters for fifo openings
-./target.bin run/r_a1 > run/a1.logs&
-sleep 0.5
-./target.bin run/r_a2 > run/a2.logs&
-sleep 0.5
-./log_collector.bin run/att_l run/logs run/goal > run/log_c.logs&
-sleep 0.5
-./router.bin run/att_r run/r_a1 run/r_a2 run/logs > run/router.logs&
-sleep 0.5
+python3 ${PROGRAMS_DIR}/run.py &
 
 
-cd -
-python3 evaluator_interface/auto_attacker.py evaluator_interface/scenario.json
+python3 ${SRC_DIR}/evaluator_interface/auto_attacker.py ${SRC_DIR}/evaluator_interface/scenario.json
 
 cleanup
 
 # create report from logs
-python3 present_result/export_result.py $REPORT_FILENAME
+python3 ${SRC_DIR}/present_result/export_result.py $REPORT_FILENAME
 
 echo "Finished interaction, keeping running for $WAIT_TIME more seconds"
 echo "Ctrl+C this process when you would like to stop the monitoring..."

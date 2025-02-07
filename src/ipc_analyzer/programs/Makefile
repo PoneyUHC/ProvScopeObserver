@@ -5,7 +5,7 @@ CFLAGS = -O0 -g -Wall -Wextra
 
 SRC_DIR = src
 BUILD_DIR = build
-BUILD_OBJS_DIR = $(BUILD_DIR)/binaries
+BUILD_OBJS_DIR = $(BUILD_DIR)/objs
 BUILD_EXEC_DIR = $(BUILD_DIR)/exec
 TMP_EXEC_FILES_DIR = $(BUILD_EXEC_DIR)/run
 TMP_EXEC_FILES = logs goal
@@ -20,7 +20,7 @@ clean:
 	@$(RM) -r $(BUILD_DIR)
 
 
-setup:
+setup: 
 	@$(RM) -r $(TMP_EXEC_FILES_DIR)
 	@mkdir -p $(TMP_EXEC_FILES_DIR)
 	@touch $(foreach file, $(TMP_EXEC_FILES), $(TMP_EXEC_FILES_DIR)/$(file))

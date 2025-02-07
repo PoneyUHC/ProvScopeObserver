@@ -1,5 +1,6 @@
 
 import sys
+import os
 import json
 from time import sleep
 from typing import Optional
@@ -47,7 +48,8 @@ class TestScenario:
             
     def open_target(self, target):
         try:
-            self.fds[target] = open(target, "wb")
+            dirname = os.path.dirname(os.path.dirname(__file__))
+            self.fds[target] = open(f"{dirname}/{target}", "wb")
         except Exception as e:
             print(f"Could not open file descriptor for {target}: {e}")
             return False

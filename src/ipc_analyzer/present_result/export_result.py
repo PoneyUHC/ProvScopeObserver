@@ -1,5 +1,6 @@
 
 import sys
+import os
 
 from parse_logs.parse_openat import parse_bpf_openat_logs
 from parse_logs.parse_close import parse_bpf_close_logs
@@ -41,18 +42,20 @@ def main():
         print(f"No specified export filename, defaulting to {out_filename}")
     else:
         out_filename = sys.argv[1]
+
+    root_dir = os.path.dirname(os.path.dirname(__file__))
     
-    parse_bpf_openat_logs("trace/logs/trace_open.logs")
-    parse_bpf_close_logs("trace/logs/trace_close.logs")
-    parse_bpf_read_logs("trace/logs/trace_read.logs")
-    parse_bpf_write_logs("trace/logs/trace_write.logs")
+    parse_bpf_openat_logs(f"{root_dir}/trace/logs/trace_open.logs")
+    parse_bpf_close_logs(f"{root_dir}/trace/logs/trace_close.logs")
+    parse_bpf_read_logs(f"{root_dir}/trace/logs/trace_read.logs")
+    parse_bpf_write_logs(f"{root_dir}/trace/logs/trace_write.logs")
 
     unify_bpf_logs()
     sort_events()
 
-    Path("present_result/output").mkdir(parents=True, exist_ok=True)
+    Path(f"{root_dir}/present_result/output").mkdir(parents=True, exist_ok=True)
 
-    with open(f"present_result/output/{out_filename}", "w") as f:
+    with open(f"{root_dir}/present_result/output/{out_filename}", "w") as f:
         f.write(json.dumps(GlobalModel, indent=4, cls=MyEncoder))
     
     
