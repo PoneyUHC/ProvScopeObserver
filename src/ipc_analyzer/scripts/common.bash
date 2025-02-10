@@ -10,6 +10,7 @@ SRC_DIR="$(dirname "$(dirname "$0")")"
 
 PROGRAMS_DIR=${SRC_DIR}/programs
 SCRIPTS_DIR=${SRC_DIR}/scripts
+RESULTS_DIR=${SRC_DIR}/present_result
 
 BINARIES_DIR=${PROGRAMS_DIR}/build/exec
 
