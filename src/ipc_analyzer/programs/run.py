@@ -1,5 +1,6 @@
 
 import os
+import sys
 import time
 
 import subprocess
@@ -9,7 +10,7 @@ from ipc_analyzer.utils import EndProcessWatcher
 ERR_BAD_ARG = 1
 
 
-def start():
+def start(n_targets: int):
 
     procs = []
 
@@ -19,15 +20,10 @@ def start():
 
     os.chdir('./build/exec')
 
-    with open('run/a1.logs', 'w') as fout:
-        p = subprocess.Popen(['./target.bin', 'run/r_a1'], stdout=fout)
-        procs.append(p)
-
-    time.sleep(0.5)
-
-    with open('run/a2.logs', 'w') as fout:
-        p = subprocess.Popen(['./target.bin', 'run/r_a2'], stdout=fout)
-        procs.append(p)
+    for i in range(n_targets):
+        with open(f"run/a{i}.logs", 'w') as fout:
+            p = subprocess.Popen(['./target.bin', f'run/r_a{i}'], stdout=fout)
+            procs.append(p)
 
     time.sleep(0.5)
 
@@ -37,7 +33,7 @@ def start():
 
     time.sleep(0.5)
 
-    with open('run/a1.logs', 'w') as fout:
+    with open('run/router.logs', 'w') as fout:
         p = subprocess.Popen(['./router.bin', 'run/att_r', 'run/r_a1', 'run/r_a2', 'run/logs'], stdout=fout)
         procs.append(p)
     
@@ -52,9 +48,18 @@ def clean(procs: list[subprocess.Popen]):
 
 def main():
 
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <n_targets>")
+        sys.exit(ERR_BAD_ARG)
+
+    n_targets = int(sys.argv[1])
+    if n_targets < 1 or n_targets > 5:
+        print("Number of targets must be in at least 1, at most 5")
+        sys.exit(ERR_BAD_ARG)
+
     watcher = EndProcessWatcher()
 
-    procs = start()
+    procs = start(n_targets)
     
     while not watcher.kill_now:
         time.sleep(1)
