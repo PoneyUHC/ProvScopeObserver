@@ -4,14 +4,15 @@
 SCRIPT_DIR="$(dirname "$0")"
 source ${SCRIPT_DIR}/common.bash
 
-if [ $# -lt 2 ]
+if [ $# -lt 3 ]
     then
-        echo "Usage : $0 [report_filename] [wait_time]"
+        echo "Usage : $0 [report_filename] [wait_time] [n_clients]"
         exit 1
 fi
 
 REPORT_FILENAME=$1
 WAIT_TIME=$2
+N_CLIENTS=$3
 ARGS=$$
 
 [ ! -d $BPF_LOGS_DIR ] && mkdir -p $BPF_LOGS_DIR
@@ -35,7 +36,7 @@ python3 ${BPF_SCRIPTS_DIR}/trace.py ${ARGS} &
 
 sleep 1
 
-python3 ${PROGRAMS_DIR}/run.py &
+python3 ${PROGRAMS_DIR}/run.py ${N_CLIENTS} &
 
 sleep 2
 
@@ -48,4 +49,5 @@ sleep ${WAIT_TIME}
 cleanup
 
 # create report from logs
+echo "Exporting results to file ${REPORT_FILENAME}" 
 python3 ${SRC_DIR}/present_result/export_result.py ${REPORT_FILENAME}

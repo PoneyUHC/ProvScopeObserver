@@ -1,6 +1,6 @@
 
 tracepoint:syscalls:sys_enter_read
-/ comm == "target.bin" || comm == "router.bin" || comm == "log_collector.b" /
+/ comm == "client.bin" || comm == "router.bin" || comm == "log_collector.b" /
 {
     @entered_read[pid] = 1;
 

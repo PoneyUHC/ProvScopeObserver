@@ -156,21 +156,28 @@ int main(int argc, char *argv[])
 
 
     int err;
-    err = open_fifo(argv[1], &g_in_fd, O_RDONLY);
+    err = create_fifo(argv[1]);
     if(err){
+        LOG("Could not create fifo %s\n", argv[1]);
+        cleanup(argv);
+        return 2;
+    }
+
+    g_in_fd = open(argv[1], O_RDONLY);
+    if(g_in_fd == -1){
         LOG("Could not open fifo %s\n", argv[1]);
         cleanup(argv);
         return 2;
     }
     
-    g_log_fd = open(argv[2], O_RDWR | O_CREAT);
+    g_log_fd = open(argv[2], O_RDONLY | O_CREAT);
     if(g_log_fd == -1){
         LOG("Could not open file %s\n", argv[2]);
         cleanup(argv);
         return 2;
     }
 
-    g_goal_fd = open(argv[3], O_RDWR | O_CREAT);
+    g_goal_fd = open(argv[3], O_WRONLY | O_CREAT);
     if(g_goal_fd == -1){
         LOG("Could not open file %s\n", argv[3]);
         cleanup(argv);

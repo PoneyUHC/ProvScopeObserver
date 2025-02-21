@@ -12,7 +12,7 @@ ERR_INVALID_DIR = 2
 
 INSTANCE_FILENAME = "my_instance.inst"
 SOLUTION_FILENAME = "my_solution"
-SOLVER_PATH = "../../cats-dev/cats-ts-lcs/main.exe"
+SOLVER_PATH = "../cats-dev/cats-ts-lcs/main.exe"
 SOLVER_ARGS = ["10", "0", "50", "0", "3" , SOLUTION_FILENAME]
 
 

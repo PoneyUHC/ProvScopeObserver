@@ -13,7 +13,7 @@ TMP_EXEC_FILES = logs goal
 .PHONY: all clean setup
 
 
-all: router.bin target.bin log_collector.bin attacker.bin setup
+all: router.bin client.bin log_collector.bin setup
 
 
 clean:
@@ -27,9 +27,8 @@ setup:
 
 
 router.bin: $(BUILD_OBJS_DIR)/router.o $(BUILD_OBJS_DIR)/common.o
-target.bin: $(BUILD_OBJS_DIR)/target.o $(BUILD_OBJS_DIR)/common.o
+client.bin: $(BUILD_OBJS_DIR)/client.o $(BUILD_OBJS_DIR)/common.o
 log_collector.bin: $(BUILD_OBJS_DIR)/log_collector.o $(BUILD_OBJS_DIR)/common.o
-attacker.bin: $(BUILD_OBJS_DIR)/attacker.o $(BUILD_OBJS_DIR)/common.o
 
 %.bin:
 	@if [ ! -d $(BUILD_EXEC_DIR) ]; then mkdir -p $(BUILD_EXEC_DIR); fi

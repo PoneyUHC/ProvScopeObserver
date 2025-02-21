@@ -191,10 +191,12 @@ void loop() {
             g_STATE_token_owner = (g_STATE_token_owner + 1) % n_targets;
         }
 
-        if( n_errors == n_targets) {
+        if(n_errors == n_targets) {
             LOG("Complete turn with errors, sleeping\n");
             sleep(1);
         }
+
+        n_errors = 0;
     }
 }
 
@@ -263,19 +265,36 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    for(int i=0; i<n_targets; ++i){
-        err = open_fifo(argv[3+i], g_in_fds+i, O_WRONLY | O_CREAT);
+    for(int i=0; i<2*n_targets; ++i){
+        err = create_fifo(argv[3+i]);
         if(err){
-            LOG("Could not open fifo %s\n", argv[3+i]);
+            LOG("Could not create fifo %s\n", argv[3+i]);
             cleanup(argv);
             return 2;
         }
-        err = open_fifo(argv[3+n_targets+i], g_out_fds+i, O_RDONLY);
-        if(err){
+    }
+
+    for(int i=0; i<n_targets; ++i){
+        g_out_fds[i] = open(argv[3+n_targets+i], O_WRONLY);
+        if(g_out_fds[i] == -1){
             LOG("Could not open fifo %s\n", argv[3+n_targets+i]);
             cleanup(argv);
             return 2;
         }
+    }
+
+    for(int i=0; i<n_targets; ++i){
+        g_in_fds[i] = open(argv[3+i], O_RDONLY);
+        if(g_in_fds[i] == -1){
+            LOG("Could not open fifo %s\n", argv[3+i]);
+            cleanup(argv);
+            return 2;
+        }
+    }
+
+    for(int i=0; i<n_targets; ++i){
+        int flags = fcntl(g_in_fds[i], F_GETFL, 0);
+        fcntl(g_in_fds[i], F_SETFL, flags | O_NONBLOCK);
     }
 
     loop();

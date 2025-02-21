@@ -14,18 +14,16 @@
 #include <time.h>
 
 
-int open_fifo(char *path, int *out_fd, int mode)
+int create_fifo(char *path)
 {
-    if(mode == O_RDONLY){
+    if( access( path, F_OK ) != 0) {
         if(mkfifo(path, 0666) == -1){
             LOG("Could not create fifo %s\n", path);
             return 1;
         }
     }
     
-    *out_fd = open(path, mode);
-
-    return *out_fd == -1;
+    return 0;
 }
 
 

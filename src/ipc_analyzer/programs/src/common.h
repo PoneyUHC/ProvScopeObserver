@@ -1,5 +1,5 @@
 
-int open_fifo(char *path, int *out_fd, int mode);
+int create_fifo(char *path);
 void close_fifo(int fd);
 
 void get_time_str(char *destination);

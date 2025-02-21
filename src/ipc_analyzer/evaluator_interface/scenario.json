@@ -2,7 +2,7 @@
 {
     "targets" : [
         "programs/build/exec/run/att_r",
-        "programs/build/exec/run/att_l"
+        "programs/build/exec/run/any_l"
     ],
     "actions" : [
         {
