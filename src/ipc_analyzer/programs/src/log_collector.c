@@ -22,8 +22,8 @@ static int g_received_command;
 static char g_parse_buffer[PARSE_BUFFER_SIZE];
 static int g_parse_buffer_size = 0;
 
-static int read_timer = 4;
-static int write_timer = 10;
+static int read_timer = 2;
+static int write_timer = 4;
 static int last_read_date = 0;
 static int last_write_date = 0;
 

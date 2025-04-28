@@ -61,7 +61,7 @@ def main():
     procs = start(n_clients)
     
     while not watcher.kill_now:
-        time.sleep(1)
+        time.sleep(0.2)
 
     clean(procs)
 
