@@ -18,7 +18,7 @@
 static int g_my_id;
 
 static int g_talkative;
-static int g_n_others;
+static int g_n_clients;
 
 static long g_next_talk_delay;
 static long g_last_talk_time;
@@ -64,17 +64,17 @@ void send_message()
 
     ((int*)g_out_msg)[0] = total_size;
     ((int*)g_out_msg)[1] = selector;
-    snprintf(g_out_msg+8, OUT_BUFFER_MAX_SIZE-8, "Hello from %.1d", g_my_id);
+    snprintf(g_out_msg+8, OUT_BUFFER_MAX_SIZE-8, "Hello from %.1d\n", g_my_id);
     write(g_out_fd, g_out_msg, total_size);
 }
 
 
 void send_message_to_random() 
 {
-    int target = rand() % g_n_others;
-    while( target == g_my_id ){
-        target = rand() % g_n_others;
-    }
+    int target;
+    do {
+        target = rand() % g_n_clients;
+    } while( target == g_my_id);
 
     send_select(target);
     send_message();
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
     g_out_fd = -1;
 
     if(argc != 6){
-        LOG("Usage: %s [talkative] [fifo_in] [fifo_out] [n_others] [my_id]\n", argv[0]);
+        LOG("Usage: %s [talkative] [fifo_in] [fifo_out] [n_clients] [my_id]\n", argv[0]);
         return 1;
     }
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    g_n_others = atoi(argv[4]);
+    g_n_clients = atoi(argv[4]);
     g_my_id = atoi(argv[5]);
 
     g_last_talk_time = get_time_ns();

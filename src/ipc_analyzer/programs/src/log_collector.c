@@ -1,6 +1,7 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -14,7 +15,10 @@
 #define PARSE_BUFFER_SIZE 1024
 
 static int g_in_fd;
-static int g_log_fd;
+
+static int g_n_logs;
+static int *g_log_fds;
+
 static int g_goal_fd;
 
 static int g_received_command;
@@ -27,13 +31,14 @@ static int write_timer = 4;
 static int last_read_date = 0;
 static int last_write_date = 0;
 
-// format of log file is 'src,dest,msg\n' on each line 
-int API_read_and_parse(){
+
+int read_and_parse(int fd)
+{
     char c;
     int n_read;
     int new_content = 0;
     while(1){
-        n_read = read(g_log_fd, &c, 1);
+        n_read = read(fd, &c, 1);
         if(!n_read ){
             break;
         }
@@ -58,6 +63,21 @@ int API_read_and_parse(){
 
     LOG("Content of buffer after parsing :");
     printf("%s\n", g_parse_buffer);
+
+    return 0;
+}
+
+
+// format of log file is 'dest,msg\n' on each line 
+int API_read_and_parse(){
+    int err;
+    for(int i=0; i<g_n_logs; ++i){
+        err = read_and_parse(g_log_fds[i]);
+        if (err){
+            LOG("Error reading log file %d\n", i);
+            return 1;
+        }
+    }
 
     return 0;
 }
@@ -90,9 +110,6 @@ void loop()
 {
     int err;
     int n_read;
-
-    int flags = fcntl(g_in_fd, F_GETFL, 0);
-    fcntl(g_in_fd, F_SETFL, flags | O_NONBLOCK);
 
     while(1){
         
@@ -129,7 +146,64 @@ void cleanup()
 {
     close_fifo(g_in_fd);
     close(g_goal_fd);
-    close(g_log_fd);
+
+    for(int i=0; i<g_n_logs; ++i){
+        close(g_log_fds[i]);
+    }
+}
+
+
+int open_logs(char* argv[])
+{
+    g_log_fds = (int*) malloc(g_n_logs * sizeof(int));
+    for(int i=0; i<g_n_logs; ++i){
+        g_log_fds[i] = open(argv[2+i], O_RDONLY);
+        if(g_log_fds[i] == -1){
+            LOG("Could not open file %s\n", argv[2+i]);
+            return 2;
+        }
+    }
+
+    return 0;
+}
+
+
+int create_fifos(char* argv[]) 
+{
+    int err = create_fifo(argv[1]);
+    if(err){
+        LOG("Could not create fifo %s\n", argv[1]);
+        return 2;
+    }
+
+    return 0;
+}
+
+
+int open_in_fifos_non_blocking(char* argv[]) 
+{
+    g_in_fd = open(argv[1], O_RDONLY);
+    if(g_in_fd == -1){
+        LOG("Could not open fifo %s\n", argv[1]);
+        return 2;
+    }
+
+    int flags = fcntl(g_in_fd, F_GETFL, 0);
+    fcntl(g_in_fd, F_SETFL, flags | O_NONBLOCK);
+
+    return 0;
+}
+
+
+int open_goal(char* argv[]) 
+{
+    g_goal_fd = open(argv[3], O_WRONLY | O_CREAT,  S_IRWXU);
+    if(g_goal_fd == -1){
+        LOG("Could not open file %s\n", argv[3]);
+        return 2;
+    }
+
+    return 0;
 }
 
 
@@ -139,50 +213,32 @@ int main(int argc, char *argv[])
 
     g_in_fd = -1;
     g_goal_fd = -1;
-    g_log_fd = -1;
+    g_log_fds = NULL;
     last_read_date = time(NULL);
 
-    if(argc != 4){
-        LOG("Usage: %s [fifo_in] [log_file] [goal_file]\n", argv[0]);
+    if(argc < 5){
+        LOG("Usage: %s [n_logs] [log_file]* [fifo_in] [goal_file]\n", argv[0]);
         return 1;
     }
 
-    for(int i=0; i<3; ++i){
-        if(strlen(argv[i+1]) >= PATH_MAX_LEN){
-            LOG("File path too long : %s\n", argv[i+1]);
+    g_n_logs = atoi(argv[1]);
+    if(argc < 2 + g_n_logs + 2){
+        LOG("Usage: %s [n_logs] [log_file]* [fifo_in] [goal_file]\n", argv[0]);
+        return 1;
+    }
+
+    for(int i=1; i<1+g_n_logs; ++i){
+        if(strlen(argv[i]) >= PATH_MAX_LEN){
+            LOG("File path too long : %s\n", argv[i]);
             return 1;
         }
     }
 
-
-    int err;
-    err = create_fifo(argv[1]);
-    if(err){
-        LOG("Could not create fifo %s\n", argv[1]);
-        cleanup(argv);
-        return 2;
-    }
-
-    g_in_fd = open(argv[1], O_RDONLY);
-    if(g_in_fd == -1){
-        LOG("Could not open fifo %s\n", argv[1]);
-        cleanup(argv);
-        return 2;
-    }
     
-    g_log_fd = open(argv[2], O_RDONLY | O_CREAT);
-    if(g_log_fd == -1){
-        LOG("Could not open file %s\n", argv[2]);
-        cleanup(argv);
-        return 2;
-    }
-
-    g_goal_fd = open(argv[3], O_WRONLY | O_CREAT);
-    if(g_goal_fd == -1){
-        LOG("Could not open file %s\n", argv[3]);
-        cleanup(argv);
-        return 2;
-    }
+    if (open_logs(argv)) cleanup();
+    if (create_fifos(argv)) cleanup(argv);
+    if (open_in_fifos_non_blocking(argv)) cleanup(argv);
+    if (open_goal(argv)) cleanup(argv);
     
     loop();
 

@@ -17,10 +17,10 @@
 static int* g_STATE_destinations;
 static int g_STATE_token_owner;
 
-static int n_targets;
+static int g_n_targets;
 static int *g_out_fds;
 static int *g_in_fds;
-static int g_log_fd;
+static int *g_log_fds;
 
 static char g_in_msg[IN_BUFFER_MAX_SIZE];
 static int g_in_msg_size;
@@ -91,8 +91,8 @@ int API_send_message(int in_fd, int out_fd)
 
     g_in_msg[g_in_msg_size] = '\0';
 
-    snprintf(g_log_buffer, 512, "%.1d,%.1d,%s\n", g_STATE_token_owner, g_STATE_destinations[g_STATE_token_owner], g_in_msg);
-    write(g_log_fd, g_log_buffer, 4 + g_in_msg_size + 1);
+    snprintf(g_log_buffer, 512, "%.1d,%s\n", g_STATE_destinations[g_STATE_token_owner], g_in_msg);
+    write(g_log_fds[g_STATE_token_owner], g_log_buffer, 2 + g_in_msg_size + 1);
     
     return 0;
 }
@@ -182,16 +182,17 @@ int consume_token(int in_fd, int out_fd)
 }
 
 
-void loop() {
+void loop() 
+{
 
     int n_errors = 0;
     while(1){
-        for(int i=0; i<n_targets; ++i){
+        for(int i=0; i<g_n_targets; ++i){
             n_errors += consume_token(g_in_fds[g_STATE_token_owner], g_out_fds[g_STATE_token_owner]);
-            g_STATE_token_owner = (g_STATE_token_owner + 1) % n_targets;
+            g_STATE_token_owner = (g_STATE_token_owner + 1) % g_n_targets;
         }
 
-        if(n_errors == n_targets) {
+        if(n_errors == g_n_targets) {
             LOG("Complete turn with errors, sleeping\n");
             sleep(1);
         }
@@ -203,99 +204,129 @@ void loop() {
 
 void cleanup()
 {
-    close(g_log_fd);
-    for(int i=0; i<n_targets; ++i){
+    for(int i=0; i<g_n_targets; ++i){
+        close(g_log_fds[i]);
+    }
+    for(int i=0; i<g_n_targets; ++i){
         close_fifo(g_out_fds[i]);
         close_fifo(g_in_fds[i]);
     }
+    free(g_in_fds); 
     free(g_out_fds);
-    free(g_in_fds);
+    free(g_log_fds);
 }
+
+
+int open_logs(char* argv[]) 
+{
+    for(int i=0; i<g_n_targets; ++i){
+        g_log_fds[i] = open(argv[2+i], O_WRONLY | O_CREAT, S_IRWXU);
+        if(g_log_fds[i] == -1){
+            LOG("Could not open file %s\n", argv[2+i]);
+            return 2;
+        }
+    }
+
+    return 0;
+}
+
+
+int create_fifos(char* argv[]) 
+{
+    int err;
+    for(int i=0; i<2*g_n_targets; ++i){
+        err = create_fifo(argv[2+g_n_targets+i]);
+        if(err){
+            LOG("Could not create fifo %s\n", argv[2+g_n_targets+i]);
+            return 2;
+        }
+    }
+
+    return 0;
+}
+
+
+int open_out_fifos(char* argv[]) 
+{
+    for(int i=0; i<g_n_targets; ++i){
+        g_out_fds[i] = open(argv[2+2*g_n_targets+i], O_WRONLY);
+        if(g_out_fds[i] == -1){
+            LOG("Could not open fifo %s\n", argv[2+2*g_n_targets+i]);
+            return 2;
+        }
+    }
+
+    return 0;
+}
+
+
+int open_in_fifos_non_blocking(char* argv[]) 
+{
+    for(int i=0; i<g_n_targets; ++i){
+        g_in_fds[i] = open(argv[2+g_n_targets+i], O_RDONLY);
+        if(g_in_fds[i] == -1){
+            LOG("Could not open fifo %s\n", argv[3+i]);
+            return 2;
+        }
+    }
+
+    for(int i=0; i<g_n_targets; ++i){
+        int flags = fcntl(g_in_fds[i], F_GETFL, 0);
+        fcntl(g_in_fds[i], F_SETFL, flags | O_NONBLOCK);
+    }
+
+    return 0;
+}
+
 
 
 int main(int argc, char *argv[])
 {
     setvbuf(stdout, NULL, _IONBF, 0);
 
-    g_log_fd = -1;
+    g_log_fds = NULL;
     g_in_fds = NULL;
     g_out_fds = NULL;
 
-
-    if(argc < 3) {
-        LOG("Usage: %s [log_filename] [n_targets] [fifo_in]* [fifo_out]*\n", argv[0]);
+    if(argc < 4) {
+        LOG("Usage: %s [n_targets] [log_filename]* [fifo_in]* [fifo_out]*\n", argv[0]);
         return 1;
     }
 
-    n_targets = atoi(argv[2]);
-    if(n_targets < 2 || n_targets > 6){
+    g_n_targets = atoi(argv[1]);
+    if(g_n_targets < 2 || g_n_targets > 6){
         LOG("Number of targets must be at least 2, at most 5\n");
         return 1;
     }
-    g_in_fds = (int*) malloc(n_targets * sizeof(int));
-    g_out_fds = (int*) malloc(n_targets * sizeof(int));
+    g_in_fds = (int*) malloc(g_n_targets * sizeof(int));
+    g_out_fds = (int*) malloc(g_n_targets * sizeof(int));
+    g_log_fds = (int*) malloc(g_n_targets * sizeof(int));
     
-    g_STATE_destinations = malloc(n_targets * sizeof(int));
-    for(int i=0; i<n_targets; ++i) {
+    g_STATE_destinations = malloc(g_n_targets * sizeof(int));
+    for(int i=0; i<g_n_targets; ++i) {
         // default is you speak to yourself
         g_STATE_destinations[i] = i;
     }
 
-    if(argc != 3+2*n_targets){
-        LOG("Usage: %s [log_filename] [n_targets] [fifo_in]* [fifo_out]* \n", argv[0]);
+    if(argc != 2+3*g_n_targets){
+        LOG("Usage: %s [n_targets] [log_filename]* [fifo_in]* [fifo_out]* \n", argv[0]);
         return 1;
     }
 
-    if(strlen(argv[1]) >= PATH_MAX_LEN){
-        LOG("File path too long : %s\n", argv[1]);
-        return 1;
-    }
-    for(int i=3; i<3+2*n_targets; ++i){
+    
+    for(int i=3; i<2+3*g_n_targets; ++i){
         if(strlen(argv[i]) >= PATH_MAX_LEN){
             LOG("File path too long : %s\n", argv[i]);
             return 1;
         }
     }
 
-    int err;
-    g_log_fd = open(argv[1], O_WRONLY | O_CREAT);
-    if(g_log_fd == -1){
-        LOG("Could not open file %s\n", argv[1]);
-        cleanup(argv);
-        return 2;
-    }
+    int err = 0;
+    if (open_logs(argv)) cleanup(argv);
+    if (create_fifos(argv)) cleanup(argv);
+    if (open_out_fifos(argv)) cleanup(argv);
+    if (open_in_fifos_non_blocking(argv)) cleanup(argv);
 
-    for(int i=0; i<2*n_targets; ++i){
-        err = create_fifo(argv[3+i]);
-        if(err){
-            LOG("Could not create fifo %s\n", argv[3+i]);
-            cleanup(argv);
-            return 2;
-        }
-    }
-
-    for(int i=0; i<n_targets; ++i){
-        g_out_fds[i] = open(argv[3+n_targets+i], O_WRONLY);
-        if(g_out_fds[i] == -1){
-            LOG("Could not open fifo %s\n", argv[3+n_targets+i]);
-            cleanup(argv);
-            return 2;
-        }
-    }
-
-    for(int i=0; i<n_targets; ++i){
-        g_in_fds[i] = open(argv[3+i], O_RDONLY);
-        if(g_in_fds[i] == -1){
-            LOG("Could not open fifo %s\n", argv[3+i]);
-            cleanup(argv);
-            return 2;
-        }
-    }
-
-    for(int i=0; i<n_targets; ++i){
-        int flags = fcntl(g_in_fds[i], F_GETFL, 0);
-        fcntl(g_in_fds[i], F_SETFL, flags | O_NONBLOCK);
-    }
 
     loop();
 
