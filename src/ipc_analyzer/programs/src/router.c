@@ -65,11 +65,6 @@ int API_select_destination(int in_fd)
         return err;
     }
 
-    if(tmp_destination != 0 && tmp_destination != 1) {
-        LOG("Invalid destination value\n");
-        return 1;
-    }
-
     g_STATE_destinations[g_STATE_token_owner] = tmp_destination;
 
     LOG("Destination set to %d for client %d\n", g_STATE_destinations[g_STATE_token_owner], g_STATE_token_owner);
@@ -192,10 +187,11 @@ void loop()
             g_STATE_token_owner = (g_STATE_token_owner + 1) % g_n_targets;
         }
 
-        if(n_errors == g_n_targets) {
-            LOG("Complete turn with errors, sleeping\n");
-            sleep(1);
-        }
+        // Commented to make the router run max speed
+        // if(n_errors == g_n_targets) {
+        //     LOG("Complete turn with errors, sleeping\n");
+        //     sleep(1);
+        // }
 
         n_errors = 0;
     }
@@ -265,7 +261,7 @@ int open_in_fifos_non_blocking(char* argv[])
     for(int i=0; i<g_n_targets; ++i){
         g_in_fds[i] = open(argv[2+g_n_targets+i], O_RDONLY);
         if(g_in_fds[i] == -1){
-            LOG("Could not open fifo %s\n", argv[3+i]);
+            LOG("Could not open fifo %s\n", argv[2+g_n_targets+i]);
             return 2;
         }
     }

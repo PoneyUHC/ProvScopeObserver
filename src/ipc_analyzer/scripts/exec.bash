@@ -13,6 +13,7 @@ fi
 REPORT_FILENAME=$1
 WAIT_TIME=$2
 N_CLIENTS=$3
+TALK_DELAY=$4
 ARGS=$$
 
 [ ! -d $BPF_LOGS_DIR ] && mkdir -p $BPF_LOGS_DIR
@@ -36,7 +37,7 @@ python3 ${BPF_SCRIPTS_DIR}/trace.py ${ARGS} &
 
 sleep 1
 
-python3 ${PROGRAMS_DIR}/run.py ${N_CLIENTS} &
+python3 ${PROGRAMS_DIR}/run.py ${N_CLIENTS} ${TALK_DELAY} &
 
 sleep 2
 

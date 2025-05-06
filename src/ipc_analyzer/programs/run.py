@@ -9,8 +9,9 @@ from ipc_analyzer.utils import EndProcessWatcher
 
 ERR_BAD_ARG = 1
 
+MIN_TALK_DELAY_MICROSECONDS = 200000
 
-def start(n_clients: int):
+def start(n_clients: int, talk_delay_microsecond: int):
 
     procs = []
 
@@ -30,7 +31,7 @@ def start(n_clients: int):
 
     for i in range(n_clients):
         with open(f"run/client{i}.logs", 'w') as fout:
-            p = subprocess.Popen(['./client.bin', "1", router_to_clients[i], clients_to_router[i], str(n_clients), str(i)], stdout=fout)
+            p = subprocess.Popen(['./client.bin', "1", router_to_clients[i], clients_to_router[i], str(n_clients), str(i), str(talk_delay_microsecond)], stdout=fout)
             procs.append(p)
 
     with open('run/log_c.logs', 'w') as fout:
@@ -48,8 +49,8 @@ def clean(procs: list[subprocess.Popen]):
 
 def main():
 
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <n_targets>")
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <n_targets> <talk_delay_ms>")
         sys.exit(ERR_BAD_ARG)
 
     n_clients = int(sys.argv[1])
@@ -57,9 +58,14 @@ def main():
         print("Number of targets must be in at least 1, at most 5")
         sys.exit(ERR_BAD_ARG)
 
+    talk_delay_microsecond = int(sys.argv[2])
+    if talk_delay_microsecond < MIN_TALK_DELAY_MICROSECONDS:
+        print(f"talk_delay_ms must be at least {MIN_TALK_DELAY_MICROSECONDS} (or else the trace may be too heavy for the tool)")
+        sys.exit(ERR_BAD_ARG)
+
     watcher = EndProcessWatcher()
 
-    procs = start(n_clients)
+    procs = start(n_clients, talk_delay_microsecond)
     
     while not watcher.kill_now:
         time.sleep(0.2)

@@ -170,9 +170,9 @@ int open_logs(char* argv[])
 
 int create_fifos(char* argv[]) 
 {
-    int err = create_fifo(argv[1]);
+    int err = create_fifo(argv[2+g_n_logs]);
     if(err){
-        LOG("Could not create fifo %s\n", argv[1]);
+        LOG("Could not create fifo %s\n", argv[2+g_n_logs]);
         return 2;
     }
 
@@ -182,7 +182,7 @@ int create_fifos(char* argv[])
 
 int open_in_fifos_non_blocking(char* argv[]) 
 {
-    g_in_fd = open(argv[1], O_RDONLY);
+    g_in_fd = open(argv[2+g_n_logs], O_RDONLY);
     if(g_in_fd == -1){
         LOG("Could not open fifo %s\n", argv[1]);
         return 2;
@@ -197,9 +197,9 @@ int open_in_fifos_non_blocking(char* argv[])
 
 int open_goal(char* argv[]) 
 {
-    g_goal_fd = open(argv[3], O_WRONLY | O_CREAT,  S_IRWXU);
+    g_goal_fd = open(argv[2+g_n_logs+1], O_WRONLY | O_CREAT,  S_IRWXU);
     if(g_goal_fd == -1){
-        LOG("Could not open file %s\n", argv[3]);
+        LOG("Could not open file %s\n", argv[2+g_n_logs+1]);
         return 2;
     }
 
@@ -222,12 +222,12 @@ int main(int argc, char *argv[])
     }
 
     g_n_logs = atoi(argv[1]);
-    if(argc < 2 + g_n_logs + 2){
+    if(argc != 2 + g_n_logs + 2){
         LOG("Usage: %s [n_logs] [log_file]* [fifo_in] [goal_file]\n", argv[0]);
         return 1;
     }
 
-    for(int i=1; i<1+g_n_logs; ++i){
+    for(int i=2; i<2+g_n_logs; ++i){
         if(strlen(argv[i]) >= PATH_MAX_LEN){
             LOG("File path too long : %s\n", argv[i]);
             return 1;

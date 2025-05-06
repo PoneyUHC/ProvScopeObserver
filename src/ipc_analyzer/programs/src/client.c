@@ -15,6 +15,7 @@
 #define IN_BUFFER_MAX_SIZE 512
 #define OUT_BUFFER_MAX_SIZE 512
 
+static int g_talk_delay_ms;
 static int g_my_id;
 
 static int g_talkative;
@@ -54,6 +55,7 @@ void send_select(int target)
     ((int*)g_out_msg)[2] = target;
 
     write(g_out_fd, g_out_msg, total_size);
+    LOG("Selecting client %d\n", target);
 }
 
 
@@ -64,8 +66,10 @@ void send_message()
 
     ((int*)g_out_msg)[0] = total_size;
     ((int*)g_out_msg)[1] = selector;
-    snprintf(g_out_msg+8, OUT_BUFFER_MAX_SIZE-8, "Hello from %.1d\n", g_my_id);
+    snprintf(g_out_msg+8, OUT_BUFFER_MAX_SIZE-8, "Hello from %.1d", g_my_id);
     write(g_out_fd, g_out_msg, total_size);
+
+    LOG("Sending message '%s'\n", g_out_msg+8);
 }
 
 
@@ -104,7 +108,7 @@ void loop()
             }
         }
 
-        usleep(200000);
+        usleep(g_talk_delay_ms);
     }
 }
 
@@ -124,8 +128,8 @@ int main(int argc, char *argv[])
     g_in_fd = -1;
     g_out_fd = -1;
 
-    if(argc != 6){
-        LOG("Usage: %s [talkative] [fifo_in] [fifo_out] [n_clients] [my_id]\n", argv[0]);
+    if(argc != 7){
+        LOG("Usage: %s [talkative] [fifo_in] [fifo_out] [n_clients] [my_id] [talk_delay_ms]\n", argv[0]);
         return 1;
     }
 
@@ -160,6 +164,7 @@ int main(int argc, char *argv[])
 
     g_n_clients = atoi(argv[4]);
     g_my_id = atoi(argv[5]);
+    g_talk_delay_ms = atoi(argv[6]);
 
     g_last_talk_time = get_time_ns();
     g_next_talk_delay = get_delay_ns();
