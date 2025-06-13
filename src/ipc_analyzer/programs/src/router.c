@@ -12,6 +12,7 @@
 
 #define PATH_MAX_LEN 256
 #define IN_BUFFER_MAX_SIZE 512
+#define OUT_BUFFER_MAX_SIZE 512
 #define LOG_BUFFER_SIZE 512
 
 static int* g_STATE_destinations;
@@ -26,28 +27,14 @@ static char g_in_msg[IN_BUFFER_MAX_SIZE];
 static int g_in_msg_size;
 static int g_in_packet_size;
 
+static char g_out_msg[OUT_BUFFER_MAX_SIZE];
+
 static char g_log_buffer[LOG_BUFFER_SIZE];
 
-#define ERR_NOTHING_TO_READ 1
-#define ERR_READ_ERROR 2
+
 #define ERR_MSG_TOO_SHORT 3
 #define ERR_INVALID_SELECTOR_VALUE 4
 
-
-int usual_read_errors(int n_read)
-{
-    if (n_read == 0) {
-        LOG("Nothing to read\n");
-        return ERR_NOTHING_TO_READ;
-    }
-        
-    if(n_read < 0){
-        LOG("Error on read\n");
-        return ERR_READ_ERROR;
-    }
-    
-    return 0;
-}
 
 
 int API_select_destination(int in_fd)
@@ -82,7 +69,10 @@ int API_send_message(int in_fd, int out_fd)
     }
 
     LOG("Sending message '%s' to %d\n", g_in_msg, g_STATE_destinations[g_STATE_token_owner]);
-    write(out_fd, g_in_msg, g_in_msg_size);
+
+    ((int*)g_out_msg)[0] = g_in_msg_size;
+    strcpy(g_out_msg + 4, g_in_msg);
+    write(out_fd, g_out_msg, g_in_msg_size + 4);
 
     g_in_msg[g_in_msg_size] = '\0';
 
@@ -183,7 +173,7 @@ void loop()
     int n_errors = 0;
     while(1){
         for(int i=0; i<g_n_targets; ++i){
-            n_errors += consume_token(g_in_fds[g_STATE_token_owner], g_out_fds[g_STATE_token_owner]);
+            n_errors += consume_token(g_in_fds[g_STATE_token_owner], g_out_fds[g_STATE_destinations[g_STATE_token_owner]]);
             g_STATE_token_owner = (g_STATE_token_owner + 1) % g_n_targets;
         }
 

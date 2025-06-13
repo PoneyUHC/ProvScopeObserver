@@ -27,6 +27,7 @@ static long g_last_talk_time;
 static int g_in_fd;
 static int g_out_fd;
 
+static int g_in_msg_size;
 static char g_in_msg[IN_BUFFER_MAX_SIZE];
 static char g_out_msg[OUT_BUFFER_MAX_SIZE];
 
@@ -85,19 +86,30 @@ void send_message_to_random()
 }
 
 
+void receive_message()
+{
+    LOG("Reading input fifo\n");
+    int msg_size = read(g_in_fd, &g_in_msg_size, 4);
+    int err = usual_read_errors(msg_size);
+    if(err != 0){
+        return;
+    }
+    
+    int read_size = read(g_in_fd, g_in_msg, g_in_msg_size);
+    if( read_size == msg_size){
+        LOG("Error: cannot read enough bytes\n");
+        return;
+    }
+    
+    LOG("Received message of %d characters: %s\n", g_in_msg_size, g_in_msg);
+}
+
+
 void loop()
 {
-    int in_packet_size;
-
     while(1){
     
-        LOG("Reading input fifo\n");
-        in_packet_size = read(g_in_fd, g_in_msg, IN_BUFFER_MAX_SIZE);
-        if(in_packet_size == -1 || in_packet_size == 0){
-            LOG("Error on read\n");
-        } else {
-            LOG("Received message '%s'\n", g_in_msg);
-        }
+        receive_message();
         
         if(g_talkative) {
             if(g_last_talk_time + g_next_talk_delay < get_time_ns()){

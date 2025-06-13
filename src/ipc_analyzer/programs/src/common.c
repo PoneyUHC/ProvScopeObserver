@@ -41,6 +41,22 @@ void get_time_str(char *destination)
 }
 
 
+int usual_read_errors(int n_read)
+{
+    if (n_read == 0) {
+        LOG("Nothing to read\n");
+        return ERR_NOTHING_TO_READ;
+    }
+        
+    if(n_read < 0){
+        LOG("Error on read\n");
+        return ERR_READ_ERROR;
+    }
+    
+    return 0;
+}
+
+
 void LOG(const char *format, ...)
 {
     va_list args;
