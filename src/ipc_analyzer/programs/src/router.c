@@ -188,10 +188,10 @@ void loop()
         }
 
         // Commented to make the router run max speed
-        // if(n_errors == g_n_targets) {
-        //     LOG("Complete turn with errors, sleeping\n");
-        //     sleep(1);
-        // }
+        if(n_errors == g_n_targets) {
+            LOG("Complete turn with errors, sleeping\n");
+            usleep(200000);
+        }
 
         n_errors = 0;
     }
