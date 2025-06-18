@@ -2,14 +2,14 @@
 import sys
 import os
 
-from parse_logs.parse_openat import parse_bpf_openat_logs
-from parse_logs.parse_close import parse_bpf_close_logs
-from parse_logs.parse_read import parse_bpf_read_logs
-from parse_logs.parse_write import parse_bpf_write_logs
+from ipc_analyzer.present_result.parse_logs.parse_openat import parse_bpf_openat_logs
+from ipc_analyzer.present_result.parse_logs.parse_close import parse_bpf_close_logs
+from ipc_analyzer.present_result.parse_logs.parse_read import parse_bpf_read_logs
+from ipc_analyzer.present_result.parse_logs.parse_write import parse_bpf_write_logs
 
-from postprocess_parse import unify_bpf_logs, sort_events
+from ipc_analyzer.present_result.postprocess_parse import add_stdios, sort_events
 
-from ipca_globals import GlobalModel, Process, File, OpenInfo, CommunicationChannel
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, File, CommunicationChannel
 
 import json
 from json import JSONEncoder
@@ -50,7 +50,7 @@ def main():
     parse_bpf_read_logs(f"{root_dir}/trace/logs/trace_read.logs")
     parse_bpf_write_logs(f"{root_dir}/trace/logs/trace_write.logs")
 
-    unify_bpf_logs()
+    add_stdios()
     sort_events()
 
     Path(f"{root_dir}/present_result/output").mkdir(parents=True, exist_ok=True)

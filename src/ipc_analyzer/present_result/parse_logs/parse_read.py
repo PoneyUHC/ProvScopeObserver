@@ -1,5 +1,5 @@
-from ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, EnterReadEvent, ExitReadEvent
-from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, EnterReadEvent, ExitReadEvent
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 N_INFOS_ENTER = 6
 N_INFOS_EXIT = 8

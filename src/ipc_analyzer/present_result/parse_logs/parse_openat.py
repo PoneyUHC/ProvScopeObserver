@@ -1,6 +1,6 @@
 
-from ipca_globals import GlobalModel, Process, File, OpenInfo, ParsingResult, OpenEvent
-from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, File, OpenInfo, ParsingResult, OpenEvent
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 N_INFOS = 7
 
@@ -49,8 +49,6 @@ def parse_line(line: str) -> int:
     new_file = File(path, None)
     file = GlobalModel.add_or_get_file(new_file)
 
-    open_info = OpenInfo(timestamp, -1, file, fd, mode, flags)
-    process.add_open_info(open_info)
     
     event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {file.path} with fd {fd}", process, file, fd, mode, flags)
     GlobalModel.add_event(event)

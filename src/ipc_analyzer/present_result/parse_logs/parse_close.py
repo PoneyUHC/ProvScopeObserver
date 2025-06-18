@@ -1,6 +1,6 @@
 
-from ipca_globals import GlobalModel, Process, ParsingResult, CloseEvent
-from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, ParsingResult, CloseEvent
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 N_INFOS = 5
 
@@ -43,9 +43,6 @@ def parse_line(line: str) -> int:
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
-
-    open_info = process.get_unclosed_open_info(fd)
-    open_info.close_time = timestamp
     
     event = CloseEvent(timestamp, f"{process.name}-{process.pid} closes fd {fd}", process, fd)
     GlobalModel.add_event(event)

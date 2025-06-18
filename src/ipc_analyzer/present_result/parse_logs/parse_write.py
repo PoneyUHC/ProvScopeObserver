@@ -1,5 +1,5 @@
-from ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, WriteEvent
-from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, WriteEvent
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 N_INFOS = 6
 
@@ -44,9 +44,6 @@ def parse_line(line: str) -> int:
     
     channel = CommunicationChannel("Unknown", ChannelType.FIFO)
     GlobalModel.add_channel(channel)
-
-    communication_info = CommunicationInfo(timestamp, channel, fd, CommunicationDirection.WRITE, size, content)
-    process.add_communication_info(communication_info)
     
     event = WriteEvent(timestamp, f"{process.name}-{process.pid} writes to fd {fd}", process, fd, size, content)
     GlobalModel.add_event(event)

@@ -1,10 +1,14 @@
 
+from typing import List, Set
+
+
 class Process:
     def __init__(self, pid, name):
         self.pid = pid
         self.name = name
-        self.open_infos = []
-        self.communication_infos = []
+
+    def get_uuid(self):
+        return f"{self.name}-{self.pid}"
 
     def __str__(self):
         return f'Process(pid={self.pid}, name={self.name}, open_infos={self.open_infos}, communication_infos={self.communication_infos})'
@@ -12,30 +16,6 @@ class Process:
     def __repr__(self):
         return str(self)
     
-    def add_open_info(self, open_info):
-        self.open_infos.append(open_info)
-
-    def add_communication_info(self, communication_info):
-        self.communication_infos.append(communication_info)
-
-    def get_unclosed_open_info(self, fd):
-        for open_info in self.open_infos:
-            if open_info.fd == fd and open_info.close_time == -1:
-                return open_info
-        
-        missing_open_time = OpenInfo(-1, -1, None, fd, -1, -1)
-        self.open_infos.append(missing_open_time)
-        return missing_open_time 
-    
-    def get_open_info_at_time(self, fd, timestamp):
-        for open_info in self.open_infos:
-            if (open_info.fd == fd 
-                and open_info.open_time <= timestamp 
-                and (open_info.close_time > timestamp 
-                     or open_info.close_time == -1)):
-                return open_info
-        return None
-
 
 class ChannelType:
     FIFO = 0
@@ -172,9 +152,9 @@ class ParsingResult:
 class Event:
     
     def __init__(self, timestamp, description):
-        self.event_type = type(self).__name__
-        self.timestamp = timestamp
-        self.description = description
+        self.event_type: str = type(self).__name__
+        self.timestamp: int = timestamp
+        self.description: str = description
         
     def __str__(self) -> str:
         return f'Event(timestamp={self.timestamp}, description={self.description})'
@@ -183,10 +163,18 @@ class Event:
         return str(self)
     
 
-class OpenEvent(Event):
+class FSEvent(Event):
+
+    def __init__(self, timestamp, description, fd, process):
+        super().__init__(timestamp, description)
+        self.fd: int = fd
+        self.process: Process = process
+
+
+class OpenEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, file, fd, mode, flags):
-        super().__init__(timestamp, description)
+        super().__init__(timestamp, description, fd, process)
         self.process = process
         self.file = file
         self.fd = fd
@@ -200,10 +188,10 @@ class OpenEvent(Event):
         return str(self)
     
 
-class CloseEvent(Event):
+class CloseEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, fd):
-        super().__init__(timestamp, description)
+        super().__init__(timestamp, description, fd, process)
         self.process = process
         self.fd = fd
         
@@ -214,10 +202,10 @@ class CloseEvent(Event):
         return str(self)
     
     
-class EnterReadEvent(Event):
+class EnterReadEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, fd, size):
-        super().__init__(timestamp, description)
+        super().__init__(timestamp, description, fd, process)
         self.process = process
         self.fd = fd
         self.size = size
@@ -229,10 +217,10 @@ class EnterReadEvent(Event):
         return str(self)
     
 
-class ExitReadEvent(Event):
+class ExitReadEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, fd, size, content, ret):
-        super().__init__(timestamp, description)
+        super().__init__(timestamp, description, fd, process)
         self.process = process
         self.fd = fd
         self.size = size
@@ -246,10 +234,10 @@ class ExitReadEvent(Event):
         return str(self)
     
     
-class WriteEvent(Event):
+class WriteEvent(FSEvent):
         
     def __init__(self, timestamp, description, process, fd, size, content):
-        super().__init__(timestamp, description)
+        super().__init__(timestamp, description, fd, process)
         self.process = process
         self.fd = fd
         self.size = size
@@ -264,10 +252,10 @@ class WriteEvent(Event):
 
 class IPCAModel:
     def __init__(self):
-        self.processes = []
-        self.channels = []
-        self.files = []
-        self.events = []
+        self.processes: Set[Process] = set()
+        self.channels: Set[CommunicationChannel] = set()
+        self.files: Set[File] = set()
+        self.events: List[FSEvent] = []
 
     def has_process(self, pid):
         for p in self.processes:
@@ -280,7 +268,7 @@ class IPCAModel:
         if old_process:
             process = old_process
         else:
-            self.processes.append(process)
+            self.processes.add(process)
         return process
 
     def has_channel(self, channel):
@@ -289,8 +277,13 @@ class IPCAModel:
                 return c
         return None
 
-    def add_channel(self, channel):
-        self.channels.append(channel)
+    def add_or_get_channel(self, channel):
+        old_channel = self.has_channel(channel)
+        if old_channel:
+            channel = old_channel
+        else:
+            self.channels.add(channel)
+        return channel
 
     def has_file(self, file):
         for f in self.files:
@@ -303,7 +296,7 @@ class IPCAModel:
         if old_file:
             file = old_file
         else:
-            self.files.append(file)
+            self.files.add(file)
         return file
     
     def add_event(self, event):
