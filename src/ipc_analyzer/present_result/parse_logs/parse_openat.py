@@ -48,7 +48,6 @@ def parse_line(line: str) -> int:
     
     new_file = File(path, None)
     file = GlobalModel.add_or_get_file(new_file)
-
     
     event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {file.path} with fd {fd}", process, file, fd, mode, flags)
     GlobalModel.add_event(event)

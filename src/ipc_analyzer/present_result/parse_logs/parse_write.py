@@ -42,9 +42,6 @@ def parse_line(line: str) -> int:
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
     
-    channel = CommunicationChannel("Unknown", ChannelType.FIFO)
-    GlobalModel.add_channel(channel)
-    
     event = WriteEvent(timestamp, f"{process.name}-{process.pid} writes to fd {fd}", process, fd, size, content)
     GlobalModel.add_event(event)
 

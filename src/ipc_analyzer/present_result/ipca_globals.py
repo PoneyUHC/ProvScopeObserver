@@ -21,6 +21,7 @@ class ChannelType:
     FIFO = 0
     PIPE = 1
     SOCKET = 2
+    STDIO = 3
 
     def __str__(self) -> str:
         if self == ChannelType.FIFO:
@@ -37,18 +38,19 @@ class ChannelType:
 
 
 class CommunicationChannel:
-    def __init__(self, name, type):
-        self.name = name
-        self.type = type
+    def __init__(self, name, type, direction):
+        self.name: str = name
+        self.type: ChannelType = type
+        self.direction: CommunicationDirection = direction
 
     def __str__(self) -> str:
-        return f'CommunicationChannel(name={self.name}, type={self.type})'
-    
+        return f'CommunicationChannel(name={self.name}, type={self.type}, direction={self.direction})'
+
     def __repr__(self):
         return str(self)
     
     def __eq__(self, other):
-        return self.name == other.name and self.type == other.type
+        return self.name == other.name and self.type == other.type and self.direction == other.direction
 
 
 class CommunicationDirection:
@@ -252,9 +254,9 @@ class WriteEvent(FSEvent):
 
 class IPCAModel:
     def __init__(self):
-        self.processes: Set[Process] = set()
-        self.channels: Set[CommunicationChannel] = set()
-        self.files: Set[File] = set()
+        self.processes: List[Process] = []
+        self.channels: List[CommunicationChannel] = []
+        self.files: List[File] = []
         self.events: List[FSEvent] = []
 
     def has_process(self, pid):
@@ -268,7 +270,7 @@ class IPCAModel:
         if old_process:
             process = old_process
         else:
-            self.processes.add(process)
+            self.processes.append(process)
         return process
 
     def has_channel(self, channel):
@@ -282,7 +284,7 @@ class IPCAModel:
         if old_channel:
             channel = old_channel
         else:
-            self.channels.add(channel)
+            self.channels.append(channel)
         return channel
 
     def has_file(self, file):
@@ -296,7 +298,7 @@ class IPCAModel:
         if old_file:
             file = old_file
         else:
-            self.files.add(file)
+            self.files.append(file)
         return file
     
     def add_event(self, event):
