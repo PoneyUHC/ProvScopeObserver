@@ -1,10 +1,13 @@
-from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, CommunicationChannel, ChannelType, CommunicationDirection, CommunicationInfo, WriteEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+
+from ipca_globals import GlobalModel, ParsingResult, Process, WriteEvent
+from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+
 
 N_INFOS = 6
 
+
 def parse_bpf_write_logs(filename: str) -> bool:
-    lines = []
+    lines = [] 
     with open(filename, 'r') as fin:
         lines = fin.readlines()[1:]
     
@@ -41,7 +44,7 @@ def parse_line(line: str) -> int:
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
-    
+
     event = WriteEvent(timestamp, f"{process.name}-{process.pid} writes to fd {fd}", process, fd, size, content)
     GlobalModel.add_event(event)
 

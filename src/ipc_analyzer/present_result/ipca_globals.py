@@ -17,22 +17,57 @@ class Process:
         return str(self)
     
 
-class ChannelType:
+class FileType:
     FIFO = 0
-    PIPE = 1
-    SOCKET = 2
-    STDIO = 3
+    CHAR_DEVICE = 1
+    DIRECTORY = 2
+    BLOCK_DEVICE = 3
+    REGULAR_FILE = 4
+    SYMLINK = 5
+    SOCKET = 6
+    UNKNOWN = 7
+
+    S_IFIFO = 0o0010000   # FIFO
+    S_IFCHR = 0o0020000   # character device
+    S_IFDIR = 0o0040000   # directory
+    S_IFBLK = 0o0060000   # block device
+    S_IFREG = 0o0100000   # regular file
+    S_IFLNK = 0o0120000   # symlink
+    S_IFSOCK = 0o0140000  # socket
+
+    translation_table = {
+        S_IFIFO: FIFO,
+        S_IFCHR: CHAR_DEVICE,
+        S_IFDIR: DIRECTORY,
+        S_IFBLK: BLOCK_DEVICE,
+        S_IFREG: REGULAR_FILE,
+        S_IFLNK: SYMLINK,
+        S_IFSOCK: SOCKET
+    }
+
+    @staticmethod
+    def from_octal(octal: int):
+        return FileType.translation_table.get(octal, FileType.UNKNOWN)
+
 
     def __str__(self) -> str:
-        if self == ChannelType.FIFO:
+        if self == FileType.FIFO:
             return "FIFO"
-        elif self == ChannelType.PIPE:
-            return "PIPE"
-        elif self == ChannelType.SOCKET:
+        elif self == FileType.CHAR_DEVICE:
+            return "CHAR DEVICE"
+        elif self == FileType.DIRECTORY:
+            return "DIRECTORY"
+        elif self == FileType.BLOCK_DEVICE:
+            return "BLOCK DEVICE"
+        elif self == FileType.REGULAR_FILE:
+            return "REGULAR FILE"
+        elif self == FileType.SYMLINK:
+            return "SYMLINK"
+        elif self == FileType.SOCKET:
             return "SOCKET"
         else:
             return "UNKNOWN"
-        
+
     def __repr__(self):
         return str(self)
 
@@ -40,7 +75,7 @@ class ChannelType:
 class CommunicationChannel:
     def __init__(self, name, type, direction):
         self.name: str = name
-        self.type: ChannelType = type
+        self.type: FileType = type
         self.direction: CommunicationDirection = direction
 
     def __str__(self) -> str:
@@ -118,12 +153,12 @@ class FileRights:
         
 
 class File:
-    def __init__(self, path, rights):
+    def __init__(self, path, file_type):
         self.path = path
-        self.rights = rights
+        self.file_type = file_type
 
     def __str__(self) -> str:
-        return f'File(path={self.path}, rights={self.rights})'
+        return f'File(path={self.path}, file_type={self.file_type})'
     
     def __repr__(self):
         return str(self)

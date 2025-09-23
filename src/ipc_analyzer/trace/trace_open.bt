@@ -1,5 +1,10 @@
 
 #include <fcntl.h>
+#include <uapi/linux/stat.h>
+
+
+#define S_IFMT 00170000
+
 
 tracepoint:syscalls:sys_enter_openat
 / comm == "client.bin" || comm == "router.bin" || comm == "log_collector.b" /
@@ -16,13 +21,23 @@ tracepoint:syscalls:sys_enter_openat
 tracepoint:syscalls:sys_exit_openat
 /@entered_open[pid] == 1/
 {
-    printf("%ld---%s---%d---%s---%ld---%d---%d\n", nsecs, comm, pid, @filename[pid], args->ret, @mode[pid], @access_mode[pid]);
+    $fd = args->ret;
+    $file = curtask->files->fdt->fd[$fd];
+
+    $type = 0;
+    if ($file) {
+        $mode = $file->f_inode->i_mode;
+        $type = $mode & S_IFMT;
+    }
+
+    printf("%ld---%s---%d---%s---%ld---%d---%d---%o\n", nsecs, comm, pid, @filename[pid], $fd, @mode[pid], @access_mode[pid], $type);
 
     delete(@entered_open[pid]);
     delete(@mode[pid]);
     delete(@filename[pid]);
     delete(@access_mode[pid]);
 }
+
 
 END 
 {

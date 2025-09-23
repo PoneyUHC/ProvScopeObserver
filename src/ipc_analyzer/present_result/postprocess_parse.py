@@ -1,4 +1,4 @@
-from ipc_analyzer.present_result.ipca_globals import ChannelType, CommunicationChannel, CommunicationDirection, GlobalModel
+from ipc_analyzer.present_result.ipca_globals import FileType, CommunicationChannel, CommunicationDirection, GlobalModel
 
 def add_stdios():
     
@@ -8,15 +8,15 @@ def add_stdios():
 
         if event.fd == 0:
             channel_name = f"{process_uuid}-STDIN"
-            channel = CommunicationChannel(channel_name, ChannelType.STDIO, CommunicationDirection.READ)
+            channel = CommunicationChannel(channel_name, FileType.FIFO, CommunicationDirection.READ)
             GlobalModel.add_or_get_channel(channel)
         elif event.fd == 1:
             channel_name = f"{process_uuid}-STDOUT"
-            channel = CommunicationChannel(channel_name, ChannelType.STDIO, CommunicationDirection.WRITE)
+            channel = CommunicationChannel(channel_name, FileType.FIFO, CommunicationDirection.WRITE)
             GlobalModel.add_or_get_channel(channel)
         elif event.fd == 2:
             channel_name = f"{process_uuid}-STDERR"
-            channel = CommunicationChannel(channel_name, ChannelType.STDIO, CommunicationDirection.WRITE)
+            channel = CommunicationChannel(channel_name, FileType.FIFO, CommunicationDirection.WRITE)
             GlobalModel.add_or_get_channel(channel)
 
 

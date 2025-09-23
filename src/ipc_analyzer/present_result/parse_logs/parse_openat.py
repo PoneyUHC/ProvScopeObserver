@@ -1,8 +1,10 @@
 
-from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, File, OpenInfo, ParsingResult, OpenEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
-N_INFOS = 7
+from ipca_globals import GlobalModel, Process, File, ParsingResult, OpenEvent, FileType
+from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+
+
+N_INFOS = 8
 
 
 def parse_bpf_openat_logs(filename: str) -> bool:
@@ -24,7 +26,6 @@ def parse_bpf_openat_logs(filename: str) -> bool:
     return True
 
 
-
 def parse_line(line: str) -> int:
 
     parts = line.strip().split(SPLIT_PATTERN)
@@ -42,11 +43,12 @@ def parse_line(line: str) -> int:
     fd = int(parts[4])
     mode = int(parts[5])
     flags = int(parts[6])
+    file_type = int(parts[7], 8)
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
     
-    new_file = File(path, None)
+    new_file = File(path, FileType.from_octal(file_type))
     file = GlobalModel.add_or_get_file(new_file)
     
     event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {file.path} with fd {fd}", process, file, fd, mode, flags)
