@@ -35,7 +35,7 @@ sudo true
 
 python3 ${BPF_SCRIPTS_DIR}/trace.py ${ARGS} &
 
-sleep 1
+sleep 5
 
 python3 ${PROGRAMS_DIR}/run.py ${N_CLIENTS} ${TALK_DELAY} &
 

@@ -11,7 +11,7 @@ class Process:
         return f"{self.name}-{self.pid}"
 
     def __str__(self):
-        return f'Process(pid={self.pid}, name={self.name}, open_infos={self.open_infos}, communication_infos={self.communication_infos})'
+        return f'Process(pid={self.pid}, name={self.name})'
     
     def __repr__(self):
         return str(self)
@@ -159,22 +159,6 @@ class File:
 
     def __str__(self) -> str:
         return f'File(path={self.path}, file_type={self.file_type})'
-    
-    def __repr__(self):
-        return str(self)
-    
-
-class OpenInfo:
-    def __init__(self, open_time, close_time, file, fd, mode, flags):
-        self.open_time = open_time
-        self.close_time = close_time
-        self.file = file
-        self.fd = fd
-        self.mode = mode
-        self.flags = flags
-
-    def __str__(self) -> str:
-        return f'OpenInfo(open_time={self.open_time}, close_time={self.close_time}, file={self.file}, fd={self.fd}, mode={self.mode}, flags={self.flags})'
     
     def __repr__(self):
         return str(self)
@@ -345,4 +329,5 @@ class IPCAModel:
     def __repr__(self):
         return str(self)
     
+
 GlobalModel = IPCAModel()

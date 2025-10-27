@@ -1,6 +1,6 @@
 
-from ipca_globals import GlobalModel, ParsingResult, Process, WriteEvent
-from parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, WriteEvent
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 
 N_INFOS = 6
@@ -15,9 +15,10 @@ def parse_bpf_write_logs(filename: str) -> bool:
         parsing_result = parse_line(line)
         match parsing_result:
             case ParsingResult.ERR_COULD_NOT_PARSE:
-                print(f"Could not parse line {i} properly : {line}")
+                print(f"[PARSE_WRITE - ERROR] Could not parse line {i} properly : {line}")
                 return False
             case ParsingResult.WARN_IGNORE_LINE:
+                print(f"[PARSE_WRITE - WARNING] Ignoring line {i} : {line}")
                 continue
             case ParsingResult.OK:
                 continue

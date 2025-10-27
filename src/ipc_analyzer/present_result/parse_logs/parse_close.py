@@ -14,9 +14,10 @@ def parse_bpf_close_logs(filename: str) -> bool:
         parsing_result = parse_line(line)
         match parsing_result:
             case ParsingResult.ERR_COULD_NOT_PARSE:
-                print(f"Could not parse line {i} properly : {line}")
+                print(f"[PARSE_CLOSE - ERROR] Could not parse line {i} properly : {line}")
                 return False
             case ParsingResult.WARN_IGNORE_LINE:
+                print(f"[PARSE_CLOSE - WARNING] Ignoring line {i} : {line}")
                 continue
             case ParsingResult.OK:
                 continue
