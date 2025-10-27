@@ -17,7 +17,7 @@ class Process:
         return str(self)
     
 
-class FileType:
+class ResourceType:
     FIFO = 0
     CHAR_DEVICE = 1
     DIRECTORY = 2
@@ -47,23 +47,23 @@ class FileType:
 
     @staticmethod
     def from_octal(octal: int):
-        return FileType.translation_table.get(octal, FileType.UNKNOWN)
+        return ResourceType.translation_table.get(octal, ResourceType.UNKNOWN)
 
 
     def __str__(self) -> str:
-        if self == FileType.FIFO:
+        if self == ResourceType.FIFO:
             return "FIFO"
-        elif self == FileType.CHAR_DEVICE:
+        elif self == ResourceType.CHAR_DEVICE:
             return "CHAR DEVICE"
-        elif self == FileType.DIRECTORY:
+        elif self == ResourceType.DIRECTORY:
             return "DIRECTORY"
-        elif self == FileType.BLOCK_DEVICE:
+        elif self == ResourceType.BLOCK_DEVICE:
             return "BLOCK DEVICE"
-        elif self == FileType.REGULAR_FILE:
+        elif self == ResourceType.REGULAR_FILE:
             return "REGULAR FILE"
-        elif self == FileType.SYMLINK:
+        elif self == ResourceType.SYMLINK:
             return "SYMLINK"
-        elif self == FileType.SOCKET:
+        elif self == ResourceType.SOCKET:
             return "SOCKET"
         else:
             return "UNKNOWN"
@@ -72,55 +72,7 @@ class FileType:
         return str(self)
 
 
-class CommunicationChannel:
-    def __init__(self, name, type, direction):
-        self.name: str = name
-        self.type: FileType = type
-        self.direction: CommunicationDirection = direction
-
-    def __str__(self) -> str:
-        return f'CommunicationChannel(name={self.name}, type={self.type}, direction={self.direction})'
-
-    def __repr__(self):
-        return str(self)
-    
-    def __eq__(self, other):
-        return self.name == other.name and self.type == other.type and self.direction == other.direction
-
-
-class CommunicationDirection:
-    READ = 0
-    WRITE = 1
-
-    def __str__(self) -> str:
-        if self == CommunicationDirection.READ:
-            return "READ"
-        elif self == CommunicationDirection.WRITE:
-            return "WRITE"
-        else:
-            return "UNKNOWN"
-        
-    def __repr__(self):
-        return str(self)
-
-
-class CommunicationInfo:
-    def __init__(self, timestamp, channel, fd, direction, size, content):
-        self.timestamp = timestamp
-        self.channel = channel
-        self.fd = fd
-        self.direction = direction
-        self.size = size
-        self.content = content
-    
-    def __str__(self) -> str:
-        return f'CommunicationInfo(timestamp={self.timestamp}, channel={self.channel}, fd={self.fd}, direction={self.direction}, size={self.size}, content={self.content})'
-
-    def __repr__(self):
-        return str(self)
-
-
-class FileRights:
+class ResourceRights:
     
     def __init__(self, uid, uread, uwrite, uexec, gid, gread, gwrite, gexec, oread, owrite, oexec):
         self.user = uid
@@ -146,20 +98,20 @@ class FileRights:
         result += "r" if self.oread else "-"
         result += "w" if self.owrite else "-"
         result += "x" if self.oexec else "-"
-        return f'FileRights(user={self.user}   group={self.group}  {result})'
-    
+        return f'ResourceRights(user={self.user}   group={self.group}  {result})'
+
     def __repr__(self):
         return str(self)
         
 
-class File:
-    def __init__(self, path, file_type):
+class Resource:
+    def __init__(self, path, resource_type):
         self.path = path
-        self.file_type = file_type
+        self.resource_type = resource_type
 
     def __str__(self) -> str:
-        return f'File(path={self.path}, file_type={self.file_type})'
-    
+        return f'Resource(path={self.path}, resource_type={self.resource_type})'
+
     def __repr__(self):
         return str(self)
 
@@ -169,7 +121,7 @@ class ParsingResult:
     WARN_IGNORE_LINE = 1
     OK = 2
     
-    
+
 class Event:
     
     def __init__(self, timestamp, description):
@@ -211,14 +163,15 @@ class OpenEvent(FSEvent):
 
 class CloseEvent(FSEvent):
     
-    def __init__(self, timestamp, description, process, fd):
+    def __init__(self, timestamp, description, process, fd, ret):
         super().__init__(timestamp, description, fd, process)
         self.process = process
         self.fd = fd
-        
+        self.ret = ret
+
     def __str__(self) -> str:
-        return f'CloseEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd})'
-    
+        return f'CloseEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, ret={self.ret})'
+
     def __repr__(self):
         return str(self)
     
@@ -274,8 +227,7 @@ class WriteEvent(FSEvent):
 class IPCAModel:
     def __init__(self):
         self.processes: List[Process] = []
-        self.channels: List[CommunicationChannel] = []
-        self.files: List[File] = []
+        self.resources: List[Resource] = []
         self.events: List[FSEvent] = []
 
     def has_process(self, pid):
@@ -292,39 +244,25 @@ class IPCAModel:
             self.processes.append(process)
         return process
 
-    def has_channel(self, channel):
-        for c in self.channels:
-            if c.name == channel.name:
-                return c
-        return None
-
-    def add_or_get_channel(self, channel):
-        old_channel = self.has_channel(channel)
-        if old_channel:
-            channel = old_channel
-        else:
-            self.channels.append(channel)
-        return channel
-
-    def has_file(self, file):
-        for f in self.files:
-            if f.path == file.path:
+    def has_resource(self, resource):
+        for f in self.resources:
+            if f.path == resource.path:
                 return f
         return None
 
-    def add_or_get_file(self, file):
-        old_file = self.has_file(file)
-        if old_file:
-            file = old_file
+    def add_or_get_resource(self, resource):
+        old_resource = self.has_resource(resource)
+        if old_resource:
+            resource = old_resource
         else:
-            self.files.append(file)
-        return file
+            self.resources.append(resource)
+        return resource
     
     def add_event(self, event):
         self.events.append(event)
 
     def __str__(self) -> str:
-        return f'IPCAModel(processes={self.processes}, channels={self.channels}, files={self.files})'
+        return f'IPCAModel(processes={self.processes}, resources={self.resources}, events={self.events})'
     
     def __repr__(self):
         return str(self)

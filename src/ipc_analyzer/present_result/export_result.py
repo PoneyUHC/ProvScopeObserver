@@ -9,7 +9,7 @@ from ipc_analyzer.present_result.parse_logs.parse_write import parse_bpf_write_l
 
 from ipc_analyzer.present_result.postprocess_parse import add_stdios, sort_events
 
-from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, File, CommunicationChannel
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, Resource
 
 import json
 from json import JSONEncoder
@@ -26,10 +26,8 @@ class MyEncoder(JSONEncoder):
         for key, value in o.__dict__.items():
             if isinstance(value, Process):
                 patched_dict[key] = GlobalModel.processes.index(value)
-            elif isinstance(value, CommunicationChannel):
-                patched_dict[key] = GlobalModel.channels.index(value)
-            elif isinstance(value, File):
-                patched_dict[key] = GlobalModel.files.index(value)
+            elif isinstance(value, Resource):
+                patched_dict[key] = GlobalModel.resources.index(value)
             else:
                 patched_dict[key] = value
         return patched_dict

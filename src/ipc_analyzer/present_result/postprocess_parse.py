@@ -1,4 +1,4 @@
-from ipc_analyzer.present_result.ipca_globals import FileType, CommunicationChannel, CommunicationDirection, GlobalModel
+from ipc_analyzer.present_result.ipca_globals import Resource, ResourceType, GlobalModel
 
 def add_stdios():
     
@@ -7,17 +7,17 @@ def add_stdios():
         process_uuid = event.process.get_uuid()
 
         if event.fd == 0:
-            channel_name = f"{process_uuid}-STDIN"
-            channel = CommunicationChannel(channel_name, FileType.FIFO, CommunicationDirection.READ)
-            GlobalModel.add_or_get_channel(channel)
+            resource_name = f"{process_uuid}-STDIN"
+            resource = Resource(resource_name, ResourceType.FIFO)
+            GlobalModel.add_or_get_resource(resource)
         elif event.fd == 1:
-            channel_name = f"{process_uuid}-STDOUT"
-            channel = CommunicationChannel(channel_name, FileType.FIFO, CommunicationDirection.WRITE)
-            GlobalModel.add_or_get_channel(channel)
+            resource_name = f"{process_uuid}-STDOUT"
+            resource = Resource(resource_name, ResourceType.FIFO)
+            GlobalModel.add_or_get_resource(resource)
         elif event.fd == 2:
-            channel_name = f"{process_uuid}-STDERR"
-            channel = CommunicationChannel(channel_name, FileType.FIFO, CommunicationDirection.WRITE)
-            GlobalModel.add_or_get_channel(channel)
+            resource_name = f"{process_uuid}-STDERR"
+            resource = Resource(resource_name, ResourceType.FIFO)
+            GlobalModel.add_or_get_resource(resource)
 
 
 def sort_events():

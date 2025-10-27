@@ -1,6 +1,6 @@
 
 
-from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, File, ParsingResult, OpenEvent, FileType
+from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, Resource, ParsingResult, OpenEvent, ResourceType
 from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
 
 
@@ -44,15 +44,15 @@ def parse_line(line: str) -> int:
     fd = int(parts[4])
     mode = int(parts[5])
     flags = int(parts[6])
-    file_type = int(parts[7], 8)
+    resource_type = int(parts[7], 8)
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
-    
-    new_file = File(path, FileType.from_octal(file_type))
-    file = GlobalModel.add_or_get_file(new_file)
-    
-    event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {file.path} with fd {fd}", process, file, fd, mode, flags)
+
+    new_resource = Resource(path, ResourceType.from_octal(resource_type))
+    resource = GlobalModel.add_or_get_resource(new_resource)
+
+    event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {resource.path} with fd {fd}", process, resource, fd, mode, flags)
     GlobalModel.add_event(event)
 
     return ParsingResult.OK

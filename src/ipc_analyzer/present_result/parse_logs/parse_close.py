@@ -45,7 +45,7 @@ def parse_line(line: str) -> int:
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
     
-    event = CloseEvent(timestamp, f"{process.name}-{process.pid} closes fd {fd}", process, fd)
+    event = CloseEvent(timestamp, f"{process.name}-{process.pid} closes fd {fd}", process, fd, ret)
     GlobalModel.add_event(event)
 
     return ParsingResult.OK
