@@ -7,7 +7,7 @@ from ipc_analyzer.present_result.parse_logs.parse_close import parse_bpf_close_l
 from ipc_analyzer.present_result.parse_logs.parse_read import parse_bpf_read_logs
 from ipc_analyzer.present_result.parse_logs.parse_write import parse_bpf_write_logs
 
-from ipc_analyzer.present_result.postprocess_parse import add_stdios, sort_events
+from ipc_analyzer.present_result.postprocess_parse import add_stdios, normalize_resources, normalize_timestamps, sort_events
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, Resource
 
@@ -50,6 +50,8 @@ def main():
 
     add_stdios()
     sort_events()
+    normalize_timestamps()
+    normalize_resources()
 
     Path(f"{root_dir}/present_result/output").mkdir(parents=True, exist_ok=True)
 

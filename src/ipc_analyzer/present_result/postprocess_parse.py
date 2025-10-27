@@ -22,3 +22,36 @@ def add_stdios():
 
 def sort_events():
     GlobalModel.events.sort(key=lambda event: event.timestamp)
+
+
+def normalize_timestamps():
+    if not GlobalModel.events:
+        return
+
+    min_timestamp = min(event.timestamp for event in GlobalModel.events)
+
+    for event in GlobalModel.events:
+        event.timestamp -= min_timestamp
+
+
+def normalize_resources():
+
+    process_resource_map = {}
+
+    for event in GlobalModel.events:
+        if event.event_type in ['OpenEvent', 'CloseEvent']:
+            process_uuid = event.process.get_uuid()
+            resource_key = (process_uuid, event.fd)
+
+            if event.event_type == 'OpenEvent':
+                process_resource_map[resource_key] = event.resource
+            elif event.event_type == 'CloseEvent':
+                if resource_key in process_resource_map:
+                    del process_resource_map[resource_key]
+
+        elif event.event_type == 'EnterReadEvent' or event.event_type == 'ExitReadEvent' or event.event_type == 'WriteEvent':
+            process_uuid = event.process.get_uuid()
+            resource_key = (process_uuid, event.fd)
+
+            if resource_key in process_resource_map:
+                event.resource = process_resource_map[resource_key]
