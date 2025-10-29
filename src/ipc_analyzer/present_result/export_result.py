@@ -1,4 +1,3 @@
-
 import sys
 import os
 
@@ -7,31 +6,60 @@ from ipc_analyzer.present_result.parse_logs.parse_close import parse_bpf_close_l
 from ipc_analyzer.present_result.parse_logs.parse_read import parse_bpf_read_logs
 from ipc_analyzer.present_result.parse_logs.parse_write import parse_bpf_write_logs
 
-from ipc_analyzer.present_result.postprocess_parse import add_stdios, normalize_resources, normalize_timestamps, sort_events
+from ipc_analyzer.present_result.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events
 
-from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, Resource
+from ipc_analyzer.present_result.ipca_globals import Event, GlobalModel, IPCAModel, Process, Resource
 
 import json
 from json import JSONEncoder
 
 from pathlib import Path
 
-O_RDONLY = 0
-O_WRONLY = 1
-O_RDWR = 2
 
-class MyEncoder(JSONEncoder):
+class IPCAModelEncoder(JSONEncoder):
     def default(self, o):
-        patched_dict = {}
-        for key, value in o.__dict__.items():
-            if isinstance(value, Process):
-                patched_dict[key] = GlobalModel.processes.index(value)
-            elif isinstance(value, Resource):
-                patched_dict[key] = GlobalModel.resources.index(value)
-            else:
-                patched_dict[key] = value
-        return patched_dict
-    
+        # Serialize the whole model: processes/resources as full objects, events as processed entries
+        if isinstance(o, IPCAModel):
+            return {
+                'processes': [p.__dict__ for p in o.processes],
+                'resources': [r.__dict__ for r in o.resources],
+                'events': [self.default(e) for e in o.events]
+            }
+
+        # Top-level Process/Resource objects should be serialized fully
+        if isinstance(o, Process):
+            return o.__dict__
+        elif isinstance(o, Resource):
+            return o.__dict__
+
+        # Events: replace any Process/Resource references with their index in the global lists
+        elif isinstance(o, Event):
+            serialized = {}
+            for k, v in o.__dict__.items():
+                # single Process
+                if isinstance(v, Process):
+                    serialized[k] = f"p:{GlobalModel.processes.index(v)}"
+                # single Resource
+                elif isinstance(v, Resource):
+                    serialized[k] = f"r:{GlobalModel.resources.index(v)}"
+                # list containing Processes/Resources (or mixed)
+                elif isinstance(v, list):
+                    new_list = []
+                    for item in v:
+                        if isinstance(item, Process):
+                            new_list.append(f"p:{GlobalModel.processes.index(item)}")
+                        elif isinstance(item, Resource):
+                            new_list.append(f"r:{GlobalModel.resources.index(item)}")
+                        else:
+                            new_list.append(item)
+                    serialized[k] = new_list
+                else:
+                    serialized[k] = v
+            return serialized
+
+        return super().default(o)
+
+
 
 def main():
     
@@ -48,15 +76,15 @@ def main():
     parse_bpf_read_logs(f"{root_dir}/trace/logs/trace_read.logs")
     parse_bpf_write_logs(f"{root_dir}/trace/logs/trace_write.logs")
 
-    add_stdios()
     sort_events()
     normalize_timestamps()
-    normalize_resources()
+    add_stdios()
+    normalize_events()
 
     Path(f"{root_dir}/present_result/output").mkdir(parents=True, exist_ok=True)
 
     with open(f"{root_dir}/present_result/output/{out_filename}", "w") as f:
-        f.write(json.dumps(GlobalModel, indent=4, cls=MyEncoder))
+        f.write(json.dumps(GlobalModel, indent=4, cls=IPCAModelEncoder))
     
     
 if __name__ == '__main__':

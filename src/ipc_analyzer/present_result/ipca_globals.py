@@ -1,4 +1,5 @@
 
+from ctypes import Union
 from typing import List, Set
 
 
@@ -116,6 +117,9 @@ class Resource:
         return str(self)
 
 
+type Entity = Union[Process, Resource]  
+
+
 class ParsingResult:
     ERR_COULD_NOT_PARSE = 0
     WARN_IGNORE_LINE = 1
@@ -124,14 +128,19 @@ class ParsingResult:
 
 class Event:
     
-    def __init__(self, timestamp, description):
+    def __init__(self, timestamp, description, process):
         self.event_type: str = type(self).__name__
         self.timestamp: int = timestamp
         self.description: str = description
-        
+        self.process: Process = process
+
+        self.other_entities: List[Entity] = []
+        self.info_sources: List[Entity] = [process]
+        self.info_targets: List[Entity] = [process]
+
     def __str__(self) -> str:
-        return f'Event(timestamp={self.timestamp}, description={self.description})'
-    
+        return f'Event(timestamp={self.timestamp}, description={self.description}, process={self.process})'
+
     def __repr__(self):
         return str(self)
     
@@ -139,20 +148,18 @@ class Event:
 class FSEvent(Event):
 
     def __init__(self, timestamp, description, fd, process):
-        super().__init__(timestamp, description)
+        super().__init__(timestamp, description, process)
         self.fd: int = fd
-        self.process: Process = process
 
 
 class OpenEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, file, fd, mode, flags):
         super().__init__(timestamp, description, fd, process)
-        self.process = process
         self.file = file
-        self.fd = fd
         self.mode = mode
         self.flags = flags
+        
         
     def __str__(self) -> str:
         return f'OpenEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, file={self.file}, fd={self.fd}, mode={self.mode}, flags={self.flags})'
@@ -165,8 +172,6 @@ class CloseEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, fd, ret):
         super().__init__(timestamp, description, fd, process)
-        self.process = process
-        self.fd = fd
         self.ret = ret
 
     def __str__(self) -> str:
@@ -180,8 +185,6 @@ class EnterReadEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, fd, size):
         super().__init__(timestamp, description, fd, process)
-        self.process = process
-        self.fd = fd
         self.size = size
         
     def __str__(self) -> str:
@@ -195,8 +198,6 @@ class ExitReadEvent(FSEvent):
     
     def __init__(self, timestamp, description, process, fd, size, content, ret):
         super().__init__(timestamp, description, fd, process)
-        self.process = process
-        self.fd = fd
         self.size = size
         self.content = content
         self.ret = ret
@@ -212,8 +213,6 @@ class WriteEvent(FSEvent):
         
     def __init__(self, timestamp, description, process, fd, size, content):
         super().__init__(timestamp, description, fd, process)
-        self.process = process
-        self.fd = fd
         self.size = size
         self.content = content
         
