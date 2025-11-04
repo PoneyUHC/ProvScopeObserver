@@ -76,11 +76,11 @@ def __normalize_open(process_resource_map: dict[tuple[str, int], Resource], even
     process_resource_map[resource_key] = event.file
 
     event.other_entities.append(event.file)
-    event.info_sources.append(event.file)
+    event.source_entities.append(event.file)
 
     # TODO: determine in the monitoring if the file did already exist or not
     if event.flags & (os.O_TRUNC | os.O_CREAT):
-        event.info_targets.append(event.file)
+        event.target_entities.append(event.file)
 
 
 def __normalize_close(process_resource_map: dict[tuple[str, int], Resource], event: CloseEvent):
@@ -105,10 +105,10 @@ def __normalize_read(process_resource_map: dict[tuple[str, int], Resource], even
     resource = process_resource_map[resource_key]
     event.other_entities.append(resource)
 
-    event.info_sources.append(resource)
+    event.source_entities.append(resource)
 
     if resource.resource_type in [ResourceType.FIFO, ResourceType.SOCKET]:
-        event.info_targets.append(resource)
+        event.target_entities.append(resource)
 
 
 def __normalize_write(process_resource_map: dict[tuple[str, int], Resource], event: WriteEvent):
@@ -121,6 +121,6 @@ def __normalize_write(process_resource_map: dict[tuple[str, int], Resource], eve
     
     resource = process_resource_map[resource_key]
     event.other_entities.append(resource)
-    event.info_sources.append(resource)
-    event.info_targets.append(resource)
+    event.source_entities.append(resource)
+    event.target_entities.append(resource)
 

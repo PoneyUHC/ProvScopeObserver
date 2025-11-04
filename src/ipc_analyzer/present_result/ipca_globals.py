@@ -135,8 +135,8 @@ class Event:
         self.process: Process = process
 
         self.other_entities: List[Entity] = []
-        self.info_sources: List[Entity] = [process]
-        self.info_targets: List[Entity] = [process]
+        self.source_entities: List[Entity] = [process]
+        self.target_entities: List[Entity] = [process]
 
     def __str__(self) -> str:
         return f'Event(timestamp={self.timestamp}, description={self.description}, process={self.process})'
