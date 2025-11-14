@@ -3,20 +3,26 @@
 SCRIPT_DIR="$(dirname "$0")"
 
 n_exec=1
+report_filename=report
 wait_time=1000
-talk_delay=200000
-if [ $# -lt 4 ]
+evaluator_actions_script=none
+system_executable=none
+system_executable_args=none
+if [ $# -lt 6 ]
     then
-        echo "Usage : $0 [n_exec] [wait_time] [n_clients] [talk_delay]"
+        echo "Usage : $0 [n_exec] [report_filename] [wait_time] [evaluator_actions_script] [processes] [system_executable] [system_executable_args...]"
         exit 1
     else
         n_exec=$1
-        wait_time=$2
-        n_clients=$3
-        talk_delay=$4
+        report_filename=$2
+        wait_time=$3
+        evaluator_actions_script=$4
+        processes=$5
+        system_executable=$6
+        system_executable_args=${@:7}
 fi
 
 for ((i = 0 ; i < $n_exec ; i++ ));
 do
-    source ${SCRIPT_DIR}/exec.bash report${i}.json ${wait_time} ${n_clients} ${talk_delay}; 
+    source ${SCRIPT_DIR}/exec.bash ${report_filename}${i}.json ${wait_time} ${evaluator_actions_script} ${processes} ${system_executable} ${system_executable_args}; 
 done

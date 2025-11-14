@@ -4,17 +4,18 @@
 SCRIPT_DIR="$(dirname "$0")"
 source ${SCRIPT_DIR}/common.bash
 
-if [ $# -lt 3 ]
+if [ $# -lt 5 ]
     then
-        echo "Usage : $0 [report_filename] [wait_time] [n_clients]"
+        echo "Usage : $0 [report_filename] [wait_time] [evaluator_actions_script] [processes] [system_executable] [system_executable_args...]"
         exit 1
 fi
 
 REPORT_FILENAME=$1
 WAIT_TIME=$2
-N_CLIENTS=$3
-TALK_DELAY=$4
-ARGS=$$
+EVALUATOR_ACTIONS_SCRIPT=$3
+PROCESSES=$4
+SYSTEM_EXECUTABLE=$5
+SYSTEM_EXECUTABLE_ARGS=${@:6} # system executable arguments
 
 [ ! -d $BPF_LOGS_DIR ] && mkdir -p $BPF_LOGS_DIR
 
@@ -31,17 +32,19 @@ cleanup() {
 
 trap 'cleanup' EXIT
 
+python3 ${BPF_SCRIPTS_DIR}/instantiate_templates.py ${PROCESSES}
+
 sudo true
 
 python3 ${BPF_SCRIPTS_DIR}/trace.py ${ARGS} &
 
 sleep 5
 
-python3 ${PROGRAMS_DIR}/run.py ${N_CLIENTS} ${TALK_DELAY} &
+python3 ${SYSTEM_EXECUTABLE} ${SYSTEM_EXECUTABLE_ARGS} &
 
 sleep 2
 
-python3 ${SRC_DIR}/evaluator_interface/auto_attacker.py ${SRC_DIR}/evaluator_interface/scenario.json
+${EVALUATOR_ACTIONS_SCRIPT}
 
 echo "Finished interaction, keeping running for ${WAIT_TIME} more seconds"
 echo "Ctrl+C this process when you would like to stop the monitoring..."

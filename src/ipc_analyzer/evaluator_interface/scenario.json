@@ -1,5 +1,7 @@
 
 {
+    "system_executable": "programs/run.py",
+    "system_executable_args": ["3", "200000"],
     "targets" : [
         "programs/build/exec/run/att_r",
         "programs/build/exec/run/any_l"

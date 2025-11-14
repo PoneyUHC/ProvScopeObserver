@@ -1,0 +1,37 @@
+
+tracepoint:syscalls:sys_enter_write
+/ [TEMPLATE_PROCESS_NAMES] /
+{
+    @entered_write[pid] = 1;
+
+    @fd[pid] = args->fd;
+    @buf[pid] = args->buf;
+    @count[pid] = args->count;
+
+    @size[pid] = @count[pid] > 128 ? 128 : @count[pid];
+}
+
+
+tracepoint:syscalls:sys_exit_write
+/ @entered_write[pid] == 1 /
+{
+    $ret = args->ret;
+
+    printf("%ld---%s---%d---%d---%d---%r\n", nsecs, comm, pid,  @fd[pid], @count[pid], buf(@buf[pid], @size[pid]));
+
+    delete(@entered_write[pid]);
+    delete(@fd[pid]);
+    delete(@buf[pid]);
+    delete(@count[pid]);
+    delete(@size[pid]);
+}
+
+
+END 
+{
+    clear(@entered_write);
+    clear(@fd);
+    clear(@buf);
+    clear(@count);
+    clear(@size);
+}

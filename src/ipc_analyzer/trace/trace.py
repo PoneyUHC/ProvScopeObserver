@@ -16,21 +16,23 @@ def start():
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(script_dir)
+    if os.path.exists('run/logs') is False:
+        os.makedirs('run/logs')
 
-    with open('logs/trace_open.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'trace_open.bt', sys.argv[1]], stdout=fout)
+    with open('run/logs/trace_open.logs', 'w') as fout:
+        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_open.bt'], stdout=fout)
         procs.append(p)
 
-    with open('logs/trace_close.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'trace_close.bt', sys.argv[1]], stdout=fout)
+    with open('run/logs/trace_close.logs', 'w') as fout:
+        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_close.bt'], stdout=fout)
         procs.append(p)
 
-    with open('logs/trace_write.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'trace_write.bt', sys.argv[1]], stdout=fout)
+    with open('run/logs/trace_write.logs', 'w') as fout:
+        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_write.bt'], stdout=fout)
         procs.append(p)
 
-    with open('logs/trace_read.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'trace_read.bt', sys.argv[1]], stdout=fout)
+    with open('run/logs/trace_read.logs', 'w') as fout:
+        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_read.bt'], stdout=fout)
         procs.append(p)
 
     return procs
@@ -44,10 +46,6 @@ def clean(procs: list[subprocess.Popen]):
 
 
 def main():
-
-    if len(sys.argv) != 2:
-        print("Usage: trace.py <arg>")
-        sys.exit(ERR_BAD_ARG)
 
     watcher = EndProcessWatcher()
 

@@ -3,7 +3,7 @@
 #include <fcntl.h>
 
 tracepoint:syscalls:sys_enter_close
-/ comm == "client.bin" || comm == "router.bin" || comm == "log_collector.b" /
+/ [TEMPLATE_PROCESS_NAMES] /
 {
     @entered_close[pid] = 1;
 

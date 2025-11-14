@@ -1,0 +1,54 @@
+
+#include <fcntl.h>
+#include <uapi/linux/stat.h>
+
+
+#define S_IFMT 00170000
+
+
+tracepoint:syscalls:sys_enter_openat
+/ [TEMPLATE_PROCESS_NAMES] /
+{
+    @entered_open[pid] = 1;
+
+    @mode[pid] = args->mode;
+    @filename[pid] = str(args->filename);
+    @vfs_open[pid] = 1;
+
+    @access_mode[pid] = args->flags & O_ACCMODE;
+}
+
+
+kprobe:vfs_open
+/@vfs_open[pid] == 1/
+{
+    $path = (struct path*) arg0;
+    if ($path != 0 && $path->dentry != 0 && $path->dentry->d_inode != 0) {
+        $mode = $path->dentry->d_inode->i_mode;
+        @type[pid] = $mode & S_IFMT;
+    }
+    delete(@vfs_open[pid]);
+}
+
+
+tracepoint:syscalls:sys_exit_openat
+/@entered_open[pid] == 1/
+{
+    $fd = args->ret;
+    
+    printf("%ld---%s---%d---%s---%ld---%d---%d---%o\n", nsecs, comm, pid, @filename[pid], $fd, @mode[pid], @access_mode[pid], @type[pid]);
+
+    delete(@entered_open[pid]);
+    delete(@mode[pid]);
+    delete(@filename[pid]);
+    delete(@access_mode[pid]);
+}
+
+
+END 
+{
+    clear(@entered_open);
+    clear(@mode);
+    clear(@filename);
+    clear(@access_mode);
+}

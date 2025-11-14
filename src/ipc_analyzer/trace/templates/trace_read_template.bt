@@ -1,6 +1,6 @@
 
 tracepoint:syscalls:sys_enter_read
-/ comm == "client.bin" || comm == "router.bin" || comm == "log_collector.b" /
+/ [TEMPLATE_PROCESS_NAMES] /
 {
     @entered_read[pid] = 1;
 

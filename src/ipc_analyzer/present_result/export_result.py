@@ -71,10 +71,10 @@ def main():
 
     root_dir = os.path.dirname(os.path.dirname(__file__))
     
-    parse_bpf_openat_logs(f"{root_dir}/trace/logs/trace_open.logs")
-    parse_bpf_close_logs(f"{root_dir}/trace/logs/trace_close.logs")
-    parse_bpf_read_logs(f"{root_dir}/trace/logs/trace_read.logs")
-    parse_bpf_write_logs(f"{root_dir}/trace/logs/trace_write.logs")
+    parse_bpf_openat_logs(f"{root_dir}/trace/run/logs/trace_open.logs")
+    parse_bpf_close_logs(f"{root_dir}/trace/run/logs/trace_close.logs")
+    parse_bpf_read_logs(f"{root_dir}/trace/run/logs/trace_read.logs")
+    parse_bpf_write_logs(f"{root_dir}/trace/run/logs/trace_write.logs")
 
     sort_events()
     normalize_timestamps()
