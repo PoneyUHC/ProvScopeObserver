@@ -24,5 +24,5 @@ fi
 
 for ((i = 0 ; i < $n_exec ; i++ ));
 do
-    source ${SCRIPT_DIR}/exec.bash ${report_filename}${i}.json ${wait_time} ${evaluator_actions_script} ${processes} ${system_executable} ${system_executable_args}; 
+    source ${SCRIPT_DIR}/exec.bash ${report_filename}_${i}.json ${wait_time} ${evaluator_actions_script} ${processes} ${system_executable} ${system_executable_args}; 
 done

@@ -5,6 +5,7 @@ import json
 import subprocess
 import tempfile
 import base64
+import codecs
 from time import sleep
 from typing import Optional
 
@@ -23,7 +24,7 @@ class SystemInteraction:
         return f"{__class__.__name__}({self.payload} -> {self.target})"
 
 
-class EvaluatorAction:
+class EvaluatorTestCase:
 
     def __init__(self, name, interactions) -> None:
         self.name = name
@@ -41,8 +42,8 @@ class EvaluatorAction:
 
 class TestScenario:
 
-    def __init__(self, actions, targets) -> None:
-        self.actions = actions
+    def __init__(self, test_cases, targets) -> None:
+        self.test_cases = test_cases
         self.targets = targets
         self.fds = {}
         
@@ -60,17 +61,17 @@ class TestScenario:
 
     def __str__(self) -> str:
         result = f"{__class__.__name__}"
-        for action in self.actions:
-            result += f"\n{action}"
+        for test_case in self.test_cases:
+            result += f"\n{test_case}"
         return result
     
     def __repr__(self) -> str:
         return self.__str__()
     
     def run(self):
-        for action in self.actions:
-            print(f"Running action '{action.name}'")
-            for interaction in action.interactions:
+        for test_case in self.test_cases:
+            print(f"Running test_case '{test_case.name}'")
+            for interaction in test_case.interactions:
                 target = interaction.target
                 payload = interaction.payload
                 fd = self.fds[target]
@@ -95,29 +96,53 @@ def parse_scenario(scenario_file_path : str) -> Optional[TestScenario]:
         print(f"Could not read file {scenario_file_path}")
         return None
     
-    actions = []
+    test_cases = []
     targets = json_scenario["targets"]
 
-    for json_action in json_scenario["actions"]:
-        action_name = json_action["name"]
-        
+    # JSON must provide a top-level 'test_cases' array
+    json_test_cases = json_scenario.get("test_cases")
+    if not isinstance(json_test_cases, list):
+        print(f"Error: scenario must contain a 'test_cases' array")
+        return None
+
+    for json_test_case in json_test_cases:
+        test_case_name = json_test_case.get("name")
+        if not test_case_name:
+            print("Warning: test_case without name, skipping")
+            continue
+
         interactions = []
-        for json_interaction in json_action["interactions"]:
+        for json_interaction in json_test_case.get("interactions", []):
             target_index = json_interaction["target_index"]
             target = targets[target_index]
-            
+
             payload = json_interaction["payload"]
-            for char in IGNORE_CHARS:
-                payload = payload.replace(char, "")    
-            payload = bytes.fromhex(payload)
-            
-            interaction = SystemInteraction(target, payload)
+            # Accept multiple payload formats:
+            # - continuous hex string like "6368656c6c6f0a"
+            # - dotted/underscored hex like "63.68.65_6c.6c.6f.0a"
+            # - human-readable text with C-style escapes (e.g. "Hello\n" or "Bin\x00Data")
+            def payload_to_bytes(p: str) -> bytes:
+                if not isinstance(p, str):
+                    raise ValueError("payload must be a string")
+                # detect hex-like (allow dots/underscores as separators)
+                stripped = p.replace('.', '').replace('_', '')
+                is_hex = all(c in '0123456789abcdefABCDEF' for c in stripped) and (len(stripped) % 2 == 0) and len(stripped) > 0
+                if is_hex:
+                    return bytes.fromhex(stripped)
+                # otherwise interpret C-style escapes (\n, \xNN, \uNNNN, etc.)
+                decoded = codecs.decode(p, 'unicode_escape')
+                # encode to latin-1 so byte values 0..255 map directly
+                return decoded.encode('latin-1')
+
+            payload_bytes = payload_to_bytes(payload)
+
+            interaction = SystemInteraction(target, payload_bytes)
             interactions.append(interaction)
-        
-        action = EvaluatorAction(action_name, interactions)
-        actions.append(action)
-    
-    scenario = TestScenario(actions, targets)
+
+    test_case = EvaluatorTestCase(test_case_name, interactions)
+    test_cases.append(test_case)
+
+    scenario = TestScenario(test_cases, targets)
     return scenario
 
 
@@ -131,30 +156,47 @@ def hex_payload_to_bytes(payload: str) -> bytes:
     return bytes.fromhex(hex_chars)
 
 
-def create_action_script(action_name: str, action_data: dict, targets: list, evaluator_actions_file: str) -> str:
+def interpret_payload_to_bytes(p: str) -> bytes:
+    """Interpret a payload given in several possible formats:
+    - continuous hex string like "6368656c6c6f0a"
+    - dotted/underscored hex like "63.68.65_6c.6c.6f.0a"
+    - human-readable text with C-style escapes (e.g. "Hello\n" or "Bin\x00Data")
+    Returns the raw bytes to send to the target FIFO.
     """
-    Create a temporary bash script that directly executes the action by writing to FIFOs.
+    if not isinstance(p, str):
+        raise ValueError("payload must be a string")
+    stripped = p.replace('.', '').replace('_', '')
+    is_hex = all(c in '0123456789abcdefABCDEF' for c in stripped) and (len(stripped) % 2 == 0) and len(stripped) > 0
+    if is_hex:
+        return bytes.fromhex(stripped)
+    decoded = codecs.decode(p, 'unicode_escape')
+    return decoded.encode('latin-1')
+
+
+def create_test_case_script(test_case_name: str, test_case_data: dict, targets: list, evaluator_actions_file: str) -> str:
+    """
+    Create a temporary bash script that directly executes the test_case by writing to FIFOs.
     Returns the path to the temporary script.
     """
     # Get base directory to resolve relative paths
     dirname = os.path.dirname(os.path.dirname(__file__))
-    
+
     # Create a temporary bash script
     temp_script = tempfile.NamedTemporaryFile(mode='w', suffix='.bash', delete=False)
     temp_script.write("#!/bin/bash\n")
-    temp_script.write(f"# Temporary script for action: {action_name}\n")
+    temp_script.write(f"# Temporary script for test_case: {test_case_name}\n")
     temp_script.write(f"# Base directory: {dirname}\n\n")
-    
-    # Process each interaction in the action
-    interactions = action_data.get("interactions", [])
-    
+
+    # Process each interaction in the test_case
+    interactions = test_case_data.get("interactions", [])
+
     for interaction in interactions:
         target_index = interaction.get("target_index")
         payload = interaction.get("payload", "")
-        
+
         if target_index is None or target_index >= len(targets):
             continue
-        
+
         # Get the target FIFO path
         target_path = targets[target_index]
         # Resolve relative path
@@ -162,28 +204,28 @@ def create_action_script(action_name: str, action_data: dict, targets: list, eva
             fifo_path = os.path.join(dirname, target_path)
         else:
             fifo_path = target_path
-        
-        # Convert hex payload to bytes, then encode as base64 for safe transmission in bash
-        payload_bytes = hex_payload_to_bytes(payload)
+
+        # Convert payload (hex or escaped text) to bytes, then encode as base64 for safe transmission in bash
+        payload_bytes = interpret_payload_to_bytes(payload)
         base64_payload = base64.b64encode(payload_bytes).decode('ascii')
-        
+
         # Write to FIFO using echo with base64 decode (safer than dealing with escape sequences)
         temp_script.write(f"# Writing to {target_path}\n")
         temp_script.write(f"echo '{base64_payload}' | base64 -d > '{fifo_path}'\n")
         temp_script.write("sleep 0.1\n")  # Small delay between interactions
-    
+
     temp_script.close()
-    
+
     # Make the script executable
     os.chmod(temp_script.name, 0o755)
-    
+
     return temp_script.name
 
 
-def run_actions_with_run_bash(evaluator_actions_file: str):
+def run_test_cases_with_run_bash(evaluator_actions_file: str):
     """
-    Read evaluator_actions.json, create temporary scripts for each action,
-    and call run.bash for each action.
+    Read evaluator_actions.json, create temporary scripts for each test_case,
+    and call run.bash for each test_case.
     """
     json_actions = get_file_content(evaluator_actions_file)
     if not json_actions:
@@ -201,11 +243,12 @@ def run_actions_with_run_bash(evaluator_actions_file: str):
     # Make sure it's executable
     os.chmod(run_bash_path, 0o755)
     
-    actions = json_actions.get("actions", [])
+    # Require top-level 'test_cases' array
+    test_cases = json_actions.get("test_cases")
     targets = json_actions.get("targets", [])
-    
-    if not actions:
-        print(f"No actions found in {evaluator_actions_file}")
+
+    if not isinstance(test_cases, list):
+        print(f"No test_cases found in {evaluator_actions_file} (expecting 'test_cases' array)")
         sys.exit(1)
 
 
@@ -228,46 +271,61 @@ def run_actions_with_run_bash(evaluator_actions_file: str):
         print("Warning: system_processes must be a list; defaulting to empty list")
         system_processes = []
     
-    print(f"Found {len(actions)} actions in {evaluator_actions_file}")
+    print(f"Found {len(test_cases)} test_cases in {evaluator_actions_file}")
     print(f"System executable: {system_executable}")
     if system_executable_args:
         print(f"System executable args: {system_executable_args}")
+    # Determine system name for output reports. If not provided explicitly, derive from executable name
+    system_name = json_actions.get("system_name")
+    if not system_name:
+        # fallback: use basename of system_executable without extension
+        system_name = os.path.splitext(os.path.basename(system_executable))[0]
+
+    # Ensure the present_result output directory exists: present_result/output/{system_name}
+    report_dir = os.path.join(system_name)
+    try:
+        os.makedirs(report_dir, exist_ok=True)
+    except Exception as e:
+        print(f"Warning: could not create report dir {report_dir}: {e}")
     
     temp_scripts = []  # Keep track of temp script files for cleanup
     
     try:
-        for action in actions:
-            action_name = action.get("name")
-            if not action_name:
-                print("Warning: Action without name, skipping")
+        for test_case in test_cases:
+            test_case_name = test_case.get("name")
+            if not test_case_name:
+                print("Warning: Test case without name, skipping")
                 continue
-            
+
             print(f"\n{'='*60}")
-            print(f"Processing action: {action_name}")
+            print(f"Processing test_case: {test_case_name}")
             print(f"{'='*60}")
-            
-            # Create temporary script for this action
-            temp_script_path = create_action_script(action_name, action, targets, evaluator_actions_file)
+
+            # Create temporary script for this test_case
+            temp_script_path = create_test_case_script(test_case_name, test_case, targets, evaluator_actions_file)
             temp_scripts.append(temp_script_path)
+
+            # Assemble a report filename under present_result/output/{system_name}
+            report_path = os.path.join(report_dir, test_case_name)
             
-            # Call run.bash with: 1 {action_name} 3 {temp_script} {system_executable}
+            # Call run.bash with: 1 {report_path} 3 {temp_script} {system_executable}
             # Format: run.bash [n_exec] [report_filename] [wait_time] [evaluator_actions_script] [system_executable] [system_executable_args...]
-            cmd = ["bash", run_bash_path, "1", action_name, "3", temp_script_path, ",".join(system_processes), system_executable]
+            cmd = ["bash", run_bash_path, "1", report_path, "3", temp_script_path, ",".join(system_processes), system_executable]
             cmd.extend(system_executable_args)
             print(f"Executing: {' '.join(cmd)}")
             
             try:
                 subprocess.run(cmd, check=True)
-                print(f"Action '{action_name}' completed successfully")
+                print(f"Test case '{test_case_name}' completed successfully")
             except subprocess.CalledProcessError as e:
-                print(f"Error: Action '{action_name}' failed with exit code {e.returncode}")
+                print(f"Error: Test case '{test_case_name}' failed with exit code {e.returncode}")
                 sys.exit(1)
             except Exception as e:
-                print(f"Error: Failed to execute run.bash for action '{action_name}': {e}")
+                print(f"Error: Failed to execute run.bash for test_case '{test_case_name}': {e}")
                 sys.exit(1)
         
         print(f"\n{'='*60}")
-        print("All actions completed successfully!")
+        print("All test_cases completed successfully!")
         print(f"{'='*60}")
     
     finally:
@@ -282,8 +340,6 @@ def run_actions_with_run_bash(evaluator_actions_file: str):
 
 def main():
 
-    # TODO : target array to target map for better readability
-
     argc = len(sys.argv)
     argv = sys.argv
 
@@ -294,7 +350,7 @@ def main():
     scenario_file_path = argv[1]
     
     
-    run_actions_with_run_bash(scenario_file_path)
+    run_test_cases_with_run_bash(scenario_file_path)
 
 if __name__ == "__main__":
     main()

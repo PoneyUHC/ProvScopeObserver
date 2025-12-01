@@ -1,46 +1,52 @@
 
 {
+    "system_name": "programs",
     "system_executable": "programs/run.py",
     "system_executable_args": ["3", "200000"],
+    "system_processes": [
+        "router.bin",
+        "client.bin",
+        "log_collector.b"
+    ],
     "targets" : [
         "programs/build/exec/run/att_r",
         "programs/build/exec/run/any_l"
     ],
-    "actions" : [
+    "test_cases" : [
         {
-            "name" : "Send hello to A0",
+            "name" : "Send_hello_to_A0",
             "interactions": [
                 {
                     "target_index" : 0,
-                    "payload" : "0c.00.00.00_00.00.00.00_00.00.00.00"
+                    "payload" : "\\x0c\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00"
                 },
                 {
                     "target_index" : 0,
-                    "payload" : "0f.00.00.00_01.00.00.00_68.65.6c.6c.6f.20.30"
+                    "payload" : "\\x0f\\x00\\x00\\x00\\x01\\x00\\x00\\x00hello 0"
                 }
             ]
         },
 
         {
-            "name" : "Send hello to A1",
+            "name" : "Send_hello_to_A1",
             "interactions": [
                 {
                     "target_index" : 0,
-                    "payload" : "0c.00.00.00_00.00.00.00_01.00.00.00"
+                    "payload" : "\\x0c\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00"
                 },
                 {
                     "target_index" : 0,
-                    "payload" : "0f.00.00.00_01.00.00.00_68.65.6c.6c.6f.20.31"
+                    "payload" : "\\x0f\\x00\\x00\\x00\\x01\\x00\\x00\\x00hello 1"
                 }
             ]
         },
 
         {
-            "name" : "Request read and parse logs",
+            "name" : "Request_read_and_parse_logs",
             "interactions": [
                 {
                     "target_index" : 1,
-                    "payload" : "00"
+                    "payload" : "\\x00"
                 }
             ]
         }

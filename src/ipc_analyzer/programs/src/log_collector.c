@@ -122,7 +122,7 @@ void loop()
                 sleep(1);
             }
         } else {
-            LOG("Nothing to read\n");
+            /* nothing to read: back off without logging to avoid spam */
             sleep(1);
         }
 

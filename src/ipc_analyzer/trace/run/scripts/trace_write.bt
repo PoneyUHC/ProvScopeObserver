@@ -1,6 +1,6 @@
 
 tracepoint:syscalls:sys_enter_write
-/ comm == "router.bin" || comm == "process_a.bin" || comm == "process_b.bin" || false /
+/ comm == "router" || comm == "auth" || comm == "access" || false /
 {
     @entered_write[pid] = 1;
 

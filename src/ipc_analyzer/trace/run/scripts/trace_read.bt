@@ -1,6 +1,6 @@
 
 tracepoint:syscalls:sys_enter_read
-/ comm == "router.bin" || comm == "process_a.bin" || comm == "process_b.bin" || false /
+/ comm == "router" || comm == "auth" || comm == "access" || false /
 {
     @entered_read[pid] = 1;
 

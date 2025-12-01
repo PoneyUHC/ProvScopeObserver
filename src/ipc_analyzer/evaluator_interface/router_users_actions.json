@@ -1,0 +1,67 @@
+{
+  "system_name": "router_users_programs",
+  "system_executable": "router_users_programs/run.py",
+  "system_executable_args": [],
+  "system_processes": [
+    "router",
+    "auth",
+    "access"
+  ],
+  "targets": [
+    "router_users_programs/build/exec/run/fifo_attacker_to_u1",
+    "router_users_programs/build/exec/run/fifo_attacker_to_u2"
+  ],
+  "test_cases": [
+    {
+      "name": "auth_user1_success",
+      "interactions": [
+        { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" }
+      ]
+    },
+    {
+      "name": "auth_user2_fail_then_success",
+      "interactions": [
+        { "target_index": 1, "payload": "AUTH 2 wrongpass\n" },
+        { "target_index": 1, "payload": "AUTH 2 user2_is_better\n" }
+      ]
+    },
+    {
+      "name": "access_read_allowed_user1",
+      "interactions": [
+        { "target_index": 0, "payload": "ACCESS 1 READ /tmp/user1/file1\n" }
+      ]
+    },
+    {
+      "name": "access_read_denied_user2",
+      "interactions": [
+        { "target_index": 1, "payload": "ACCESS 2 READ /tmp/user1/secret\n" }
+      ]
+    },
+    {
+      "name": "access_write_allowed_user1",
+      "interactions": [
+        { "target_index": 0, "payload": "WRITE 1 /tmp/user1/file1 Hello_from_user1\n" }
+      ]
+    },
+    {
+      "name": "access_write_denied_user2",
+      "interactions": [
+        { "target_index": 1, "payload": "WRITE 2 /tmp/user1/file1 Hacked!\n" }
+      ]
+    },
+    {
+      "name": "malformed_message",
+      "interactions": [
+        { "target_index": 0, "payload": "BADCOMMAND\n" }
+      ]
+    },
+    {
+      "name": "sequential_mix",
+      "interactions": [
+        { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" },
+        { "target_index": 0, "payload": "ACCESS 1 READ /tmp/user1/file1\n" },
+        { "target_index": 0, "payload": "WRITE 1 /tmp/user1/new.txt Hi\n" }
+      ]
+    }
+  ]
+}
