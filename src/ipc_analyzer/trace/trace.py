@@ -1,5 +1,4 @@
 
-import sys
 import os
 import time
 
@@ -14,25 +13,28 @@ def start():
 
     procs = []
 
+    env = os.environ.copy()
+    env["BPFTRACE_MAX_STRLEN"] = "90"
+
     script_dir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(script_dir)
     if os.path.exists('run/logs') is False:
         os.makedirs('run/logs')
 
     with open('run/logs/trace_open.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_open.bt'], stdout=fout)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_open.bt'], stdout=fout, env=env)
         procs.append(p)
 
     with open('run/logs/trace_close.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_close.bt'], stdout=fout)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_close.bt'], stdout=fout, env=env)
         procs.append(p)
 
     with open('run/logs/trace_write.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_write.bt'], stdout=fout)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_write.bt'], stdout=fout, env=env)
         procs.append(p)
 
     with open('run/logs/trace_read.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', 'run/scripts/trace_read.bt'], stdout=fout)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_read.bt'], stdout=fout, env=env)
         procs.append(p)
 
     return procs

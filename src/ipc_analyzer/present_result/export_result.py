@@ -81,9 +81,10 @@ def main():
     add_stdios()
     normalize_events()
 
-    Path(f"{root_dir}/present_result/output").mkdir(parents=True, exist_ok=True)
+    output_path = f"{root_dir}/present_result/output/{out_filename}"
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    with open(f"{root_dir}/present_result/output/{out_filename}", "w") as f:
+    with open(output_path, "w") as f:
         f.write(json.dumps(GlobalModel, indent=4, cls=IPCAModelEncoder))
     
     
