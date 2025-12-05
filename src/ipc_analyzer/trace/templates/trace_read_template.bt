@@ -1,37 +1,59 @@
 
+#include <fcntl.h>
+
+
+BEGIN
+{
+    @next_read_id = 1;
+}
+
+
 tracepoint:syscalls:sys_enter_read
 / [TEMPLATE_PROCESS_NAMES] /
 {
-    @entered_read[pid] = 1;
+    // Allocate a new event id
+    $id = @next_read_id++;
 
-    @fd[pid] = args->fd;
-    @buf[pid] = args->buf;
-    @count[pid] = args->count;
+    // Remember which event belongs to this pid for the exit probe
+    @read_event_id[pid] = $id;
 
-    @size[pid] = @count[pid] > 128 ? 128 : @count[pid];
+    // "enter" side info (per event)
+    @fd_by_id[$id]    = args->fd;
+    @count_by_id[$id] = args->count;
 
-    printf("enter---%ld---%s---%d---%d---%d\n", nsecs, comm, pid, @fd[pid], @count[pid]);
+    // Buffer metadata (we’ll snapshot contents on exit)
+    @size_by_id[$id]    = args->count > 128 ? 128 : args->count;
+    @buf_ptr_by_id[$id] = args->buf;
+
+    @enter_events[$id] = (nsecs, comm, pid, args->fd, args->count);
 }
 
 
 tracepoint:syscalls:sys_exit_read
-/ @entered_read[pid] == 1 /
+/ @read_event_id[pid] /
 {
-    printf("exit---%ld---%s---%d---%d---%d---%r---%d\n", nsecs, comm, pid, @fd[pid], @count[pid], buf(@buf[pid], @size[pid]), args->ret);
+    $id = @read_event_id[pid];
 
-    delete(@entered_read[pid]);
-    delete(@fd[pid]);
-    delete(@buf[pid]);
-    delete(@count[pid]);
-    delete(@size[pid]);
+    @exit_events[$id] = (
+        nsecs, 
+        comm, 
+        pid, 
+        @fd_by_id[$id], 
+        @count_by_id[$id], 
+        buf(@buf_ptr_by_id[$id], @size_by_id[$id]),
+        args->ret
+    );
+
+    delete(@read_event_id[pid]);
 }
 
 
-END 
+END
 {
-    clear(@entered_read);
-    clear(@fd);
-    clear(@buf);
-    clear(@count);
-    clear(@size);
+    clear(@read_event_id);
+    clear(@fd_by_id);
+    clear(@count_by_id);
+    clear(@size_by_id);
+    clear(@buf_ptr_by_id);
+    clear(@next_read_id);
 }

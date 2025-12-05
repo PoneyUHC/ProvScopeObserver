@@ -1,54 +1,69 @@
-
 #include <fcntl.h>
 #include <uapi/linux/stat.h>
 
-
 #define S_IFMT 00170000
 
+BEGIN
+{
+    // Use 1 instead of 0 because map failed access yields 0
+    // So we cannot differentiate failure and true 0 
+    @next_open_id = 1;
+}
 
 tracepoint:syscalls:sys_enter_openat
 / [TEMPLATE_PROCESS_NAMES] /
 {
-    @entered_open[pid] = 1;
+    $id = @next_open_id++;
+    @open_id[pid] = $id;
 
-    @mode[pid] = args->mode;
-    @filename[pid] = str(args->filename);
-    @vfs_open[pid] = 1;
+    @mode[$id]        = args->mode;
+    @filename[$id]    = str(args->filename);
+    @access_mode[$id] = args->flags & O_ACCMODE;
 
-    @access_mode[pid] = args->flags & O_ACCMODE;
+    @vfs_open[pid] = $id;
 }
 
-
 kprobe:vfs_open
-/@vfs_open[pid] == 1/
+/@vfs_open[pid]/
 {
-    $path = (struct path*) arg0;
+    $id = @vfs_open[pid];
+
+    $path = (struct path*)arg0;
     if ($path != 0 && $path->dentry != 0 && $path->dentry->d_inode != 0) {
         $mode = $path->dentry->d_inode->i_mode;
-        @type[pid] = $mode & S_IFMT;
+        @type[$id] = $mode & S_IFMT;
     }
+
     delete(@vfs_open[pid]);
 }
 
-
 tracepoint:syscalls:sys_exit_openat
-/@entered_open[pid] == 1/
+/@open_id[pid]/
 {
-    $fd = args->ret;
-    
-    printf("%ld---%s---%d---%s---%ld---%d---%d---%o\n", nsecs, comm, pid, @filename[pid], $fd, @mode[pid], @access_mode[pid], @type[pid]);
+    $id = @open_id[pid];
+    // Only scalar + small string (comm) data here
+    @open_events[$id] = (
+        nsecs,
+        comm,
+        pid, 
+        args->ret,
+        @mode[$id], 
+        @access_mode[$id], 
+        @type[$id]
+    );
 
-    delete(@entered_open[pid]);
-    delete(@mode[pid]);
-    delete(@filename[pid]);
-    delete(@access_mode[pid]);
+    delete(@open_id[pid]);
+    delete(@mode[$id]);
+    delete(@access_mode[$id]);
+    delete(@type[$id]);
 }
 
-
-END 
+END
 {
-    clear(@entered_open);
+    clear(@open_id);
     clear(@mode);
-    clear(@filename);
     clear(@access_mode);
+    clear(@type);
+    clear(@next_open_id);
 }
+

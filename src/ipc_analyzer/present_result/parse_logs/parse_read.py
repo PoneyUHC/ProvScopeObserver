@@ -1,23 +1,40 @@
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, EnterReadEvent, ExitReadEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_to_IPCA
 
-N_INFOS_ENTER = 6
-N_INFOS_EXIT = 8
+
+N_INFOS_ENTER = 5
+N_INFOS_EXIT = 7
+
 
 def parse_bpf_read_logs(filename: str) -> bool:
-    lines = []
-    with open(filename, 'r') as fin:
-        lines = fin.readlines()[1:]
     
-    for i, line in enumerate(lines):
-        parsing_result = parse_line(line)
+    read_events = bpftrace_to_IPCA(filename, keys=["@enter_events", "@exit_events"], merge=False)
+
+    # since merge=False, we have a list with two elements being the list of enter and exit events
+    enter_events = read_events[0]
+    exit_events = read_events[1]
+    
+    for i, event in enumerate(enter_events):
+        parsing_result = add_enter_to_model(event)
         match parsing_result:
             case ParsingResult.ERR_COULD_NOT_PARSE:
-                print(f"[PARSE_READ - ERROR] Could not parse line {i} properly : {line}")
+                print(f"[PARSE_READ - ERROR] Could not parse event {i} properly : {event}")
                 return False
             case ParsingResult.WARN_IGNORE_LINE:
-                print(f"[PARSE_READ - WARNING] Ignoring line {i} : {line}")
+                print(f"[PARSE_READ - WARNING] Ignoring event {i} : {event}")
+                continue
+            case ParsingResult.OK:
+                continue
+
+    for i, event in enumerate(exit_events):
+        parsing_result = add_exit_to_model(event)
+        match parsing_result:
+            case ParsingResult.ERR_COULD_NOT_PARSE:
+                print(f"[PARSE_READ - ERROR] Could not parse event {i} properly : {event}")
+                return False
+            case ParsingResult.WARN_IGNORE_LINE:
+                print(f"[PARSE_READ - WARNING] Ignoring event {i} : {event}")
                 continue
             case ParsingResult.OK:
                 continue
@@ -25,34 +42,53 @@ def parse_bpf_read_logs(filename: str) -> bool:
     return True
 
 
-def parse_line(line: str) -> int:
-
-    parts = line.strip().split(SPLIT_PATTERN)
-    if len(parts) not in [N_INFOS_ENTER, N_INFOS_EXIT]:
+def add_exit_to_model(event: tuple) -> int:
+    
+    if len(event) not in [N_INFOS_ENTER, N_INFOS_EXIT]:
         return ParsingResult.ERR_COULD_NOT_PARSE
 
-    is_exit = parts[0] == 'exit'
-
-    timestamp = int(parts[1])
-    name = parts[2]
+    (
+        timestamp,
+        name,
+        pid,
+        fd,
+        size,
+        content,
+        ret
+    ) = event
 
     if any(name == ignore for ignore in IGNORE_PATTERN):
         return ParsingResult.WARN_IGNORE_LINE
-
-    pid = int(parts[3])
-    fd = int(parts[4])
-    size = int(parts[5])
     
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
 
+    exit_read_event = ExitReadEvent(timestamp, f"{process.name}-{process.pid} finishes reading from fd {fd}", process, fd, size, content, ret)
+    GlobalModel.add_event(exit_read_event)
     
-    if is_exit:
-        content = parts[6]
-        ret = parts[7]
-        event = ExitReadEvent(timestamp, f"{process.name}-{process.pid} finishes reading from fd {fd}", process, fd, size, content, ret)
-    else:
-        event = EnterReadEvent(timestamp, f"{process.name}-{process.pid} starts reading from fd {fd}", process, fd, size)
+    return ParsingResult.OK
+
+
+def add_enter_to_model(event: tuple) -> int:
+
+    if len(event) not in [N_INFOS_ENTER, N_INFOS_EXIT]:
+        return ParsingResult.ERR_COULD_NOT_PARSE
+
+    (
+        timestamp,
+        name,
+        pid,
+        fd,
+        size,
+    ) = event
+
+    if any(name == ignore for ignore in IGNORE_PATTERN):
+        return ParsingResult.WARN_IGNORE_LINE
     
-    GlobalModel.add_event(event)
+    new_process = Process(pid, name)
+    process = GlobalModel.add_or_get_process(new_process)
+
+    enter_read_event = EnterReadEvent(timestamp, f"{process.name}-{process.pid} starts reading from fd {fd}", process, fd, size)
+    GlobalModel.add_event(enter_read_event)
+
     return ParsingResult.OK

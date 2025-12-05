@@ -1,37 +1,54 @@
 
+BEGIN
+{
+    @next_write_id = 1;
+}
+
+
 tracepoint:syscalls:sys_enter_write
 / comm == "router" || comm == "auth" || comm == "access" || false /
 {
-    @entered_write[pid] = 1;
+    $id = @next_write_id++;
 
-    @fd[pid] = args->fd;
-    @buf[pid] = args->buf;
-    @count[pid] = args->count;
+    @write_event_id[pid] = $id;
 
-    @size[pid] = @count[pid] > 128 ? 128 : @count[pid];
+    @fd_by_id[$id]    = args->fd;
+    @count_by_id[$id] = args->count;
+
+    @size_by_id[$id]    = args->count > 128 ? 128 : args->count;
+    @buf_ptr_by_id[$id] = args->buf;
 }
 
 
 tracepoint:syscalls:sys_exit_write
-/ @entered_write[pid] == 1 /
+/ @write_event_id[pid] /
 {
-    $ret = args->ret;
+    $id = @write_event_id[pid];
 
-    printf("%ld---%s---%d---%d---%d---%r\n", nsecs, comm, pid,  @fd[pid], @count[pid], buf(@buf[pid], @size[pid]));
+    @write_events[$id] = (
+        nsecs, 
+        comm, 
+        pid, 
+        @fd_by_id[$id], 
+        @count_by_id[$id], 
+        buf(@buf_ptr_by_id[$id], @size_by_id[$id]),
+        args->ret
+    );
 
-    delete(@entered_write[pid]);
-    delete(@fd[pid]);
-    delete(@buf[pid]);
-    delete(@count[pid]);
-    delete(@size[pid]);
+    delete(@write_event_id[pid]);
+    delete(@fd_by_id[$id]);
+    delete(@buf_ptr_by_id[$id]);
+    delete(@count_by_id[$id]);
+    delete(@size_by_id[$id]);
 }
 
 
 END 
 {
-    clear(@entered_write);
-    clear(@fd);
-    clear(@buf);
-    clear(@count);
-    clear(@size);
+    clear(@write_event_id);
+    clear(@fd_by_id);
+    clear(@count_by_id);
+    clear(@size_by_id);
+    clear(@buf_ptr_by_id);
+    clear(@next_write_id);
 }

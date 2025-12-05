@@ -1,26 +1,44 @@
-
 #include <fcntl.h>
+
+struct params {
+    int fd;
+};
+
+
+BEGIN
+{
+    @next_close_id = 1;
+}
 
 tracepoint:syscalls:sys_enter_close
 / comm == "router" || comm == "auth" || comm == "access" || false /
 {
     @entered_close[pid] = 1;
-
     @fd[pid] = args->fd;
 }
-
 
 tracepoint:syscalls:sys_exit_close
 /@entered_close[pid] == 1/
 {
-    printf("%ld---%s---%d---%d---%ld\n", nsecs, comm, pid, @fd[pid], args->ret);
+    // Allocate a unique event id (one entry per close())
+    $id = @next_close_id++;
+    
+    @close_events[$id] = (
+        nsecs, 
+        comm, 
+        pid, 
+        @fd[pid], 
+        args->ret
+    );
 
+    // Clean up per-pid temporary state
     delete(@entered_close[pid]);
     delete(@fd[pid]);
 }
 
-END 
+END
 {
     clear(@entered_close);
     clear(@fd);
+    clear(@next_close_id);
 }

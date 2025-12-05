@@ -14,7 +14,7 @@ def start():
     procs = []
 
     env = os.environ.copy()
-    env["BPFTRACE_MAX_STRLEN"] = "90"
+    env["BPFTRACE_MAX_STRLEN"] = "150"
 
     script_dir = os.path.dirname(os.path.realpath(__file__))
     os.chdir(script_dir)
@@ -22,19 +22,19 @@ def start():
         os.makedirs('run/logs')
 
     with open('run/logs/trace_open.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_open.bt'], stdout=fout, env=env)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', '-f', 'json', 'run/scripts/trace_open.bt'], stdout=fout, env=env)
         procs.append(p)
 
     with open('run/logs/trace_close.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_close.bt'], stdout=fout, env=env)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', '-f', 'json', 'run/scripts/trace_close.bt'], stdout=fout, env=env)
         procs.append(p)
 
     with open('run/logs/trace_write.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_write.bt'], stdout=fout, env=env)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', '-f', 'json', 'run/scripts/trace_write.bt'], stdout=fout, env=env)
         procs.append(p)
 
     with open('run/logs/trace_read.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', '-E', 'bpftrace', 'run/scripts/trace_read.bt'], stdout=fout, env=env)
+        p = subprocess.Popen(['sudo', '-E', 'bpftrace', '-f', 'json', 'run/scripts/trace_read.bt'], stdout=fout, env=env)
         procs.append(p)
 
     return procs
@@ -44,7 +44,7 @@ def start():
 def clean(procs: list[subprocess.Popen]):
 
     for p in procs:
-        subprocess.run(['sudo', 'kill', f"{p.pid}"])
+        subprocess.run(['sudo', 'kill', '-INT', f"{p.pid}"])
 
 
 def main():

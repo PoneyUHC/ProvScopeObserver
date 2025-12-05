@@ -26,7 +26,7 @@ cleanup() {
         return
     fi
     kill $(jobs -p)
-    pgrep bpftrace | xargs sudo kill -9
+    pgrep bpftrace | xargs sudo kill -INT
     already_cleaned=1
 }
 
@@ -38,7 +38,7 @@ sudo true
 
 python3 ${BPF_SCRIPTS_DIR}/trace.py ${ARGS} &
 
-sleep 5
+sleep 3
 
 python3 ${SYSTEM_EXECUTABLE} ${SYSTEM_EXECUTABLE_ARGS} &
 
@@ -51,6 +51,22 @@ echo "Ctrl+C this process when you would like to stop the monitoring..."
 sleep ${WAIT_TIME}
 
 cleanup
+
+# wait for bpftrace processes to terminate and flush logs
+sleep 2
+
+for f in "${BPF_LOGS_DIR}"/*; do
+    [ -f "$f" ] || continue
+    if sed '1d' "$f" | jq . > "${f}.jqtmp" 2>/dev/null; then
+        mv "${f}.jqtmp" "$f"
+    else
+        echo "Warning: jq failed for $f, skipping" >&2
+        rm -f "${f}.jqtmp"
+    fi
+done
+
+echo "Processing logs..."
+sleep 2
 
 # create report from logs
 echo "Exporting results to file ${REPORT_FILENAME}" 

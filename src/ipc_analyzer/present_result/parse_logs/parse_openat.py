@@ -1,25 +1,26 @@
 
-
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, Resource, ParsingResult, OpenEvent, ResourceType
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, SPLIT_PATTERN
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_to_IPCA
 
 
 N_INFOS = 8
 
 
 def parse_bpf_openat_logs(filename: str) -> bool:
-    lines = []
-    with open(filename, 'r') as fin:
-        lines = fin.readlines()[1:]
     
-    for i, line in enumerate(lines):
-        parsing_result = parse_line(line)
+    open_events = bpftrace_to_IPCA(filename, keys=["@open_events", "@filename"], merge=True)
+    if not open_events:
+        return False
+
+    for i, event in enumerate(open_events):
+        parsing_result = add_to_model(event)
         match parsing_result:
             case ParsingResult.ERR_COULD_NOT_PARSE:
-                print(f"[PARSE_OPEN - ERROR] Could not parse line {i} properly : {line}")
+                print(f"[PARSE_OPEN - ERROR] Could not parse event {i} properly : {event}")
+                print(f"-----> Expected {N_INFOS} infos, got {len(event)}")
                 return False
             case ParsingResult.WARN_IGNORE_LINE:
-                print(f"[PARSE_OPEN - WARNING] Ignoring line {i} : {line}")
+                print(f"[PARSE_OPEN - WARNING] Ignoring event {i} : {event}")
                 continue
             case ParsingResult.OK:
                 continue
@@ -27,32 +28,32 @@ def parse_bpf_openat_logs(filename: str) -> bool:
     return True
 
 
-def parse_line(line: str) -> int:
+def add_to_model(event: tuple) -> int:
 
-    parts = line.strip().split(SPLIT_PATTERN)
-    if len(parts) != N_INFOS:
+    if len(event) != N_INFOS:
         return ParsingResult.ERR_COULD_NOT_PARSE
 
-    timestamp = int(parts[0])
-    name = parts[1]
+    (
+        path,
+        timestamp,
+        name,
+        pid,
+        fd,
+        mode,
+        access_mode,
+        resource_type
+    ) = event
 
     if any(name == ignore for ignore in IGNORE_PATTERN):
         return ParsingResult.WARN_IGNORE_LINE
 
-    pid = int(parts[2])
-    path = parts[3]
-    fd = int(parts[4])
-    mode = int(parts[5])
-    flags = int(parts[6])
-    resource_type = int(parts[7], 8)
-    
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
 
     new_resource = Resource(path, ResourceType.from_octal(resource_type))
     resource = GlobalModel.add_or_get_resource(new_resource)
 
-    event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {resource.path} with fd {fd}", process, resource, fd, mode, flags)
-    GlobalModel.add_event(event)
+    open_event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {resource.path} with fd {fd}", process, resource, fd, mode, access_mode)
+    GlobalModel.add_event(open_event)
 
     return ParsingResult.OK

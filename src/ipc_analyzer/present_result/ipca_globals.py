@@ -211,13 +211,14 @@ class ExitReadEvent(FSEvent):
     
 class WriteEvent(FSEvent):
         
-    def __init__(self, timestamp, description, process, fd, size, content):
+    def __init__(self, timestamp, description, process, fd, size, content, ret):
         super().__init__(timestamp, description, fd, process)
         self.size = size
         self.content = content
+        self.ret = ret
         
     def __str__(self) -> str:
-        return f'WriteEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content})'
+        return f'WriteEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content}, ret={self.ret})'
     
     def __repr__(self):
         return str(self)
