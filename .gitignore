@@ -4,6 +4,7 @@ build/
 **/*.gexf
 
 **/logs/
+**/run/
 
 .vscode
 
@@ -11,10 +12,6 @@ venv/
 
 __pycache__/
 **/output/
-
-node_modules/
-**/gui_app/dist/main.js
-**/gui_app/src/index.js
 
 my_instance.inst
 my_solution.sol
