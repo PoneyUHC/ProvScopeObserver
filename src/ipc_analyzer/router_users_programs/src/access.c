@@ -125,6 +125,88 @@ static int is_under_dir(const char *path, const char *dir)
     return 0;
 }
 
+
+int inplace_path_move(const char *uid, char path[PATH_MAX_LEN])
+{
+    size_t root_len, user_len, path_len, new_len;
+    int slash_after_root = 0;
+    int slash_after_user = 0;
+    char user_component[PATH_MAX_LEN];
+
+    if (!path || strcmp(g_root_dir, "") == 0)
+        return -1;
+
+    root_len = strlen(g_root_dir);
+    path_len = strlen(path);
+
+    if (uid) {
+        /* Build user_uid */
+        snprintf(user_component, sizeof(user_component), "user_%s", uid);
+        user_len = strlen(user_component);
+    }
+
+    /* Need slash after root? */
+    if (g_root_dir[root_len - 1] != '/')
+        slash_after_root = 1;
+
+    /* Need slash after user_uid? */
+    if (path_len > 0 && path[0] != '/')
+        slash_after_user = 1;
+
+    /* Total new size */
+    new_len =
+        root_len +
+        slash_after_root +
+        path_len +
+        1;
+
+    if (uid) {
+        new_len += user_len + slash_after_user;
+    }
+
+
+    if (new_len > PATH_MAX_LEN)
+        return -1;
+        
+    /* Shift the original path right */
+    if (uid) {
+        memmove(
+            path + root_len + slash_after_root + user_len + slash_after_user,
+            path,
+            path_len + 1
+        );
+    } else {
+        memmove(
+            path + root_len + slash_after_root,
+            path,
+            path_len + 1
+        );
+    }
+
+    /* Copy root prefix */
+    memcpy(path, g_root_dir, root_len);
+
+    /* Slash after root */
+    size_t offset = root_len;
+    if (slash_after_root)
+        path[offset++] = '/';
+
+    if (uid) {
+        /* Insert user_uid */
+        memcpy(path + offset, user_component, user_len);
+        offset += user_len;
+    
+        /* Slash after user_uid */
+        if (slash_after_user)
+            path[offset++] = '/';
+    }
+
+    /* original path already in place */
+
+    return 0;
+}
+
+
 int check_access_allowed(const char *uid, char path[PATH_MAX_LEN]) 
 {
     char dir[PATH_MAX_LEN];
@@ -217,86 +299,6 @@ int check_access_allowed(const char *uid, char path[PATH_MAX_LEN])
     }
 }
 
-
-int inplace_path_move(const char *uid, char path[PATH_MAX_LEN])
-{
-    size_t root_len, user_len, path_len, new_len;
-    int slash_after_root = 0;
-    int slash_after_user = 0;
-    char user_component[PATH_MAX_LEN];
-
-    if (!path || strcmp(g_root_dir, "") == 0)
-        return -1;
-
-    root_len = strlen(g_root_dir);
-    path_len = strlen(path);
-
-    if (uid) {
-        /* Build user_uid */
-        snprintf(user_component, sizeof(user_component), "user_%s", uid);
-        user_len = strlen(user_component);
-    }
-
-    /* Need slash after root? */
-    if (g_root_dir[root_len - 1] != '/')
-        slash_after_root = 1;
-
-    /* Need slash after user_uid? */
-    if (path_len > 0 && path[0] != '/')
-        slash_after_user = 1;
-
-    /* Total new size */
-    new_len =
-        root_len +
-        slash_after_root +
-        path_len +
-        1;
-
-    if (uid) {
-        new_len += user_len + slash_after_user;
-    }
-
-
-    if (new_len > PATH_MAX_LEN)
-        return -1;
-        
-    /* Shift the original path right */
-    if (uid) {
-        memmove(
-            path + root_len + slash_after_root + user_len + slash_after_user,
-            path,
-            path_len + 1
-        );
-    } else {
-        memmove(
-            path + root_len + slash_after_root,
-            path,
-            path_len + 1
-        );
-    }
-
-    /* Copy root prefix */
-    memcpy(path, g_root_dir, root_len);
-
-    /* Slash after root */
-    size_t offset = root_len;
-    if (slash_after_root)
-        path[offset++] = '/';
-
-    if (uid) {
-        /* Insert user_uid */
-        memcpy(path + offset, user_component, user_len);
-        offset += user_len;
-    
-        /* Slash after user_uid */
-        if (slash_after_user)
-            path[offset++] = '/';
-    }
-
-    /* original path already in place */
-
-    return 0;
-}
 
 static int read_line_fd(int fd, char* buffer, int max_size)
 {

@@ -34,7 +34,7 @@ def add_to_model(event: tuple) -> int:
         return ParsingResult.ERR_COULD_NOT_PARSE
 
     (
-        path,
+        filepath,
         timestamp,
         name,
         pid,
@@ -50,7 +50,7 @@ def add_to_model(event: tuple) -> int:
     new_process = Process(pid, name)
     process = GlobalModel.add_or_get_process(new_process)
 
-    new_resource = Resource(path, ResourceType.from_octal(resource_type))
+    new_resource = Resource(filepath, ResourceType.from_octal(resource_type))
     resource = GlobalModel.add_or_get_resource(new_resource)
 
     open_event = OpenEvent(timestamp, f"{process.name}-{process.pid} opens {resource.path} with fd {fd}", process, resource, fd, mode, access_mode)

@@ -93,7 +93,6 @@ def __normalize_close(process_resource_map: dict[tuple[str, int], Resource], eve
         print(f"[NORMALIZE_CLOSE - WARNING] Could not close fd {event.fd} for process {process_uuid} as it was not found in the map")
 
 
-
 def __normalize_read(process_resource_map: dict[tuple[str, int], Resource], event: EnterReadEvent | ExitReadEvent):
     process_uuid = event.process.get_uuid()
     resource_key = (process_uuid, event.fd)

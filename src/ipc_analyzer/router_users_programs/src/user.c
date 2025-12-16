@@ -57,10 +57,10 @@ int main(int argc, char *argv[])
     char* fifo_to = argv[1];
     char* fifo_from = argv[2];
 
-     /* open read end blocking: retrying reads on EAGAIN produced errors
-         in earlier runs. Blocking open ensures the FIFO read end is ready
-         and subsequent read() calls will block until data arrives. */
-     int in_fd = open(fifo_from, O_RDONLY);
+    /* open read end blocking: retrying reads on EAGAIN produced errors
+        in earlier runs. Blocking open ensures the FIFO read end is ready
+        and subsequent read() calls will block until data arrives. */
+    int in_fd = open(fifo_from, O_RDONLY);
     if(in_fd == -1){
         LOG("Could not open fifo from router: %s\n", fifo_from);
         return 2;

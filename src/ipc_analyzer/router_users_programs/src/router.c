@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/epoll.h>
+#include <errno.h>
 
 #include "common.h"
 
@@ -270,18 +272,34 @@ int main(int argc, char *argv[])
 
     char line[IN_BUFFER_MAX_SIZE];
 
+    int ep = make_epoll(g_in_fds, 2);
+    if (ep < 0) {
+        LOG("Issue when creating epoll");
+        return 1;
+    }
+
     while(1){
-        for(int u=0; u<2; ++u){
-            int err = read_line_fd(g_in_fds[u], line, IN_BUFFER_MAX_SIZE);
-            if(err == 0){
-                if(strlen(line) > 0){
-                    LOG("Received from user %d: %s\n", u+1, line);
-                    handle_command(u, line);
+        struct epoll_event events[8];
+        int n = epoll_wait(ep, events, 8, -1);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            LOG("Error on epoll wait");
+            break;
+        }
+        for(int i=0; i<n; ++i){
+            int idx = events[i].data.u32;
+            int fd  = g_in_fds[idx];
+
+            if (events[i].events & EPOLLIN) {
+                int err = read_line_fd(fd, line, IN_BUFFER_MAX_SIZE);
+                if(err == 0){
+                    if(strlen(line) > 0){
+                        LOG("Received from user %d: %s\n", idx+1, line);
+                        handle_command(idx, line);
+                    }
                 }
             }
-            // else nothing to read or error
         }
-        usleep(100000);
     }
 
     return 0;

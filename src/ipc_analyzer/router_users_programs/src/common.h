@@ -1,3 +1,6 @@
+
+#include <stddef.h>
+
 int create_fifo(char *path);
 void close_fifo(int fd);
 
@@ -13,3 +16,6 @@ void LOG(const char *format, ...);
 // Convenience helpers for opening FIFOs
 int open_fifo_rd(const char *path, int nonblock);
 int open_fifo_wr(const char *path);
+
+// Convenience helper for epoll
+int make_epoll(const int *fifos, size_t n_fifos);

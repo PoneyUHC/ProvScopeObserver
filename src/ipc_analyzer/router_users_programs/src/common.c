@@ -12,6 +12,25 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <sys/epoll.h>
+
+
+int make_epoll(const int *fifos, size_t n_fifos)
+{
+    int ep = epoll_create1(0);
+    for (int i=0; i<n_fifos; ++i) {
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.u32 = i;  // store index so we know which FIFO it was
+        if (epoll_ctl(ep, EPOLL_CTL_ADD, fifos[i], &ev) < 0) {
+            LOG("Error creating epoll for fifo %d", i);
+            return -1;
+        }
+    }
+
+    return ep;
+}
+
 
 int create_fifo(char *path)
 {

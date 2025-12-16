@@ -1,6 +1,6 @@
 
 from ctypes import Union
-from typing import List, Set
+from typing import Any, Dict, List, Set
 
 
 class Process:
@@ -137,6 +137,8 @@ class Event:
         self.other_entities: List[Entity] = []
         self.source_entities: List[Entity] = [process]
         self.target_entities: List[Entity] = [process]
+        self.input_values: Dict[str, Any] = {}
+        self.output_values: Dict[str, Any] = {}
 
     def __str__(self) -> str:
         return f'Event(timestamp={self.timestamp}, description={self.description}, process={self.process})'
@@ -159,6 +161,14 @@ class OpenEvent(FSEvent):
         self.file = file
         self.mode = mode
         self.flags = flags
+        self.input_values = {
+            "filepath" : file.path,
+            "mode" : mode,
+            "flags" : flags,
+        }
+        self.output_values = {
+            "fd" : fd
+        }
         
         
     def __str__(self) -> str:
@@ -173,6 +183,12 @@ class CloseEvent(FSEvent):
     def __init__(self, timestamp, description, process, fd, ret):
         super().__init__(timestamp, description, fd, process)
         self.ret = ret
+        self.input_values = {
+            "fd" : fd
+        }
+        self.output_values = {
+            "ret" : ret
+        }
 
     def __str__(self) -> str:
         return f'CloseEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, ret={self.ret})'
@@ -186,6 +202,12 @@ class EnterReadEvent(FSEvent):
     def __init__(self, timestamp, description, process, fd, size):
         super().__init__(timestamp, description, fd, process)
         self.size = size
+        self.input_values = {
+            "fd" : fd,
+            "size" : size
+        }
+        self.output_values = {}
+
         
     def __str__(self) -> str:
         return f'EnterReadEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size})'
@@ -201,12 +223,21 @@ class ExitReadEvent(FSEvent):
         self.size = size
         self.content = content
         self.ret = ret
+        self.input_values = {
+            "fd" : fd,
+            "size" : size,
+        }
+        self.output_values = {
+            "content" : content,
+            "ret" : ret
+        }
         
     def __str__(self) -> str:
         return f'ExitReadEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content}, ret={self.ret})'
     
     def __repr__(self):
         return str(self)
+    
     
     
 class WriteEvent(FSEvent):
@@ -216,6 +247,14 @@ class WriteEvent(FSEvent):
         self.size = size
         self.content = content
         self.ret = ret
+        self.input_values = {
+            "fd" : fd,
+            "size" : size,
+        }
+        self.output_values = {
+            "content" : content,
+            "ret" : ret
+        }
         
     def __str__(self) -> str:
         return f'WriteEvent(timestamp={self.timestamp}, description={self.description}, process={self.process}, fd={self.fd}, size={self.size}, content={self.content}, ret={self.ret})'

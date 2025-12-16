@@ -8,57 +8,54 @@ from ipc_analyzer.present_result.parse_logs.parse_write import parse_bpf_write_l
 
 from ipc_analyzer.present_result.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events
 
-from ipc_analyzer.present_result.ipca_globals import Event, GlobalModel, IPCAModel, Process, Resource
+from ipc_analyzer.present_result.ipca_globals import Entity, Event, GlobalModel, IPCAModel, Process, Resource
 
 import json
 from json import JSONEncoder
 
 from pathlib import Path
+import code
+
+def serialize_lookup(object: int | str | Entity):
+    if isinstance(object, Process):
+        return f"p:{GlobalModel.processes.index(object)}"
+    elif isinstance(object, Resource):
+        return f"r:{GlobalModel.resources.index(object)}"
+    else:
+        return object
+    
+
+def serialize_event(event: Event):
+    if not isinstance(event, Event):
+        print(f"[EXPORT - FATAL] Unexpected object during export: {event}") 
+        return 
+        
+    serialized = {
+        "event_type" : event.event_type,
+        "timestamp" : event.timestamp,
+        "description" : event.description,
+        "process" : serialize_lookup(event.process),
+        "other_entities" : [serialize_lookup(e) for e in event.other_entities],
+        "source_entities" : [serialize_lookup(e) for e in event.source_entities],
+        "target_entities" : [serialize_lookup(e) for e in event.target_entities],
+        "input_values" : event.input_values,
+        "output_values" : event.output_values
+    }
+
+    return serialized
 
 
 class IPCAModelEncoder(JSONEncoder):
     def default(self, o):
-        # Serialize the whole model: processes/resources as full objects, events as processed entries
         if isinstance(o, IPCAModel):
             return {
                 'processes': [p.__dict__ for p in o.processes],
                 'resources': [r.__dict__ for r in o.resources],
-                'events': [self.default(e) for e in o.events]
+                'events': [serialize_event(e) for e in o.events]
             }
-
-        # Top-level Process/Resource objects should be serialized fully
-        if isinstance(o, Process):
-            return o.__dict__
-        elif isinstance(o, Resource):
-            return o.__dict__
-
-        # Events: replace any Process/Resource references with their index in the global lists
-        elif isinstance(o, Event):
-            serialized = {}
-            for k, v in o.__dict__.items():
-                # single Process
-                if isinstance(v, Process):
-                    serialized[k] = f"p:{GlobalModel.processes.index(v)}"
-                # single Resource
-                elif isinstance(v, Resource):
-                    serialized[k] = f"r:{GlobalModel.resources.index(v)}"
-                # list containing Processes/Resources (or mixed)
-                elif isinstance(v, list):
-                    new_list = []
-                    for item in v:
-                        if isinstance(item, Process):
-                            new_list.append(f"p:{GlobalModel.processes.index(item)}")
-                        elif isinstance(item, Resource):
-                            new_list.append(f"r:{GlobalModel.resources.index(item)}")
-                        else:
-                            new_list.append(item)
-                    serialized[k] = new_list
-                else:
-                    serialized[k] = v
-            return serialized
-
-        return super().default(o)
-
+        else:
+            print(f"[EXPORT - FATAL] Given object is not an IPCAModel: {o}")
+            return None
 
 
 def main():
