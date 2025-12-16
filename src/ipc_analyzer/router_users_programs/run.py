@@ -35,6 +35,12 @@ def start() -> list[subprocess.Popen]:
     password_file = os.path.join(BUILD, 'password')
     allow_file = os.path.join(BUILD, 'allow')
 
+    FS_ROOT = os.path.join(BUILD, 'fs/')
+    policy_file = os.path.join(FS_ROOT, 'policy')
+    os.makedirs(FS_ROOT, exist_ok=True)
+    os.makedirs(os.path.join(FS_ROOT, 'user_1'), exist_ok=True)
+    os.makedirs(os.path.join(FS_ROOT, 'user_2'), exist_ok=True)
+
 
     for p in [fifo_att_to_u1, fifo_att_to_u2, fifo_u1_to, fifo_u2_to, fifo_router_u1, fifo_router_u2, fifo_router_auth, fifo_router_access, fifo_access_router]:
         try:
@@ -58,6 +64,14 @@ def start() -> list[subprocess.Popen]:
         f.write('1:user1_is_da_best\n')
         f.write('2:user2_is_better\n')
 
+    with open(policy_file, 'w') as f:
+        f.write('USER\n')
+        f.write('1\n')
+        f.write('user_2/\n')
+        f.write('USER\n')
+        f.write('2\n')
+        f.write('user_1/\n')
+
     # ensure allow file exists and is empty
     open(allow_file, 'w').close()
 
@@ -68,7 +82,7 @@ def start() -> list[subprocess.Popen]:
 
     print('Starting access process')
     with open(os.path.join(BUILD, 'access.logs'), 'w') as fout:
-        access_proc = subprocess.Popen([os.path.join(BUILD, 'access'), fifo_router_access, fifo_access_router, allow_file], stdout=fout)
+        access_proc = subprocess.Popen([os.path.join(BUILD, 'access'), fifo_router_access, fifo_access_router, allow_file, policy_file, FS_ROOT], stdout=fout)
         procs.append(access_proc)
 
     print('Starting user1')

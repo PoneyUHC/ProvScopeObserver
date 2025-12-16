@@ -14,6 +14,8 @@
 static int g_in_fd = -1;   // router -> access
 static int g_out_fd = -1;  // access -> router
 static char g_allow_file[PATH_MAX_LEN];
+static char g_policy_file[PATH_MAX_LEN];
+static char g_root_dir[PATH_MAX_LEN];
 
 /*
  * access.c
@@ -25,6 +27,276 @@ static char g_allow_file[PATH_MAX_LEN];
 
 #include <errno.h>
 #include <stdarg.h>
+
+
+int portable_dirname(const char *path, char out[PATH_MAX_LEN])
+{
+    size_t len;
+
+    if (!path || !out)
+        return -1;
+
+    len = strlen(path);
+
+    if (len == 0) {
+        strcpy(out, ".");
+        return 0;
+    }
+
+    /* Make a working copy because we'll modify it */
+    if (len >= PATH_MAX_LEN)
+        len = PATH_MAX_LEN - 1;
+
+    memcpy(out, path, len);
+    out[len] = '\0';
+
+    /* Remove trailing slashes (except keep root "/") */
+    while (len > 1 && out[len - 1] == '/') {
+        out[len - 1] = '\0';
+        len--;
+    }
+
+    /* Find last slash */
+    char *slash = strrchr(out, '/');
+    if (!slash) {
+        /* No slash at all → dirname is "." */
+        strcpy(out, ".");
+        return 0;
+    }
+
+    /* If the slash is at the beginning, the directory is "/" */
+    if (slash == out) {
+        out[1] = '\0';  /* keep "/" */
+        return 0;
+    }
+
+    /* Cut at the slash → terminate the directory part */
+    *(slash+1) = '\0';
+
+    return 0;
+}
+
+
+static void trim_line(char *s)
+{
+    size_t len;
+
+    if (!s)
+        return;
+
+    len = strlen(s);
+    while (len > 0 && (s[len - 1] == '\n' || s[len - 1] == '\r' || s[len - 1] == ' ' || s[len - 1] == '\t')) {
+        s[len - 1] = '\0';
+        len--;
+    }
+}
+
+/*
+ * Check if 'path' is inside (or equal to) 'dir'.
+ * We require either exact match, or dir is a prefix followed by '/'.
+ * Example:
+ *  dir = /home/user/secret
+ *  path = /home/user/secret/foo.txt  -> forbidden
+ *  path = /home/user/secret          -> forbidden
+ *  path = /home/user/secret_stuff    -> allowed
+ */
+static int is_under_dir(const char *path, const char *dir)
+{
+    size_t dlen;
+
+    if (!path || !dir)
+        return 0;
+
+    dlen = strlen(dir);
+    if (dlen == 0)
+        return 0;
+
+    if (strncmp(path, dir, dlen) != 0)
+        return 0;
+
+    /* exact match */
+    if (path[dlen] == '\0')
+        return 1;
+
+    /* dir is a prefix, require directory boundary */
+    if (path[dlen] == '/')
+        return 1;
+
+    return 0;
+}
+
+int check_access_allowed(const char *uid, char path[PATH_MAX_LEN]) 
+{
+    char dir[PATH_MAX_LEN];
+    char resolved[PATH_MAX_LEN];
+    FILE *fp;
+    char line[PATH_MAX_LEN];
+    int in_target_user_block = 0;
+    int access_forbidden = 0;
+
+    LOG("check_access_allowed: uid='%s', path='%s'\n", uid ? uid : "(null)", path ? path : "(null)");
+
+    if (!uid || !path) {
+        LOG("check_access_allowed: invalid input (uid or path is NULL) -> deny\n");
+        return 0;   /* reject on invalid input */
+    }
+
+    if (portable_dirname(path, dir) != 0)
+        return -1;
+
+    if (!realpath(dir, resolved))
+        return -1;
+
+    int len = strlen(resolved);
+    resolved[len] = '/';
+    resolved[len+1] = '\0';
+
+    LOG("check_access_allowed: resolved target directory to '%s'\n", resolved);
+
+    fp = fopen(g_policy_file, "r");
+    if (!fp) {
+        LOG("check_access_allowed: could not open policy file '%s' -> allow\n",
+            g_policy_file);
+        return 1;   /* fail-open by policy */
+    }
+
+    LOG("check_access_allowed: opened policy file '%s'\n", g_policy_file);
+
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        trim_line(line);
+
+        if (line[0] == '\0')
+            continue;
+
+        if (strcmp(line, "USER") == 0) {
+            LOG("check_access_allowed: found 'USER' marker\n");
+
+            /* Next line should be the UID for this block */
+            if (fgets(line, sizeof(line), fp) == NULL) {
+                LOG("check_access_allowed: unexpected EOF after USER\n");
+                break;
+            }
+
+            trim_line(line);
+            LOG("check_access_allowed: user block uid='%s'\n", line);
+
+            if (strcmp(line, uid) == 0) {
+                LOG("check_access_allowed: UID matches, entering user block\n");
+                in_target_user_block = 1;
+            } else {
+                LOG("check_access_allowed: UID does not match, skipping block\n");
+                in_target_user_block = 0;
+            }
+
+            continue;
+        }
+
+        if (in_target_user_block) {
+
+            inplace_path_move(NULL, line);
+            
+            LOG("check_access_allowed: checking forbidden dir='%s'\n", line);
+
+            if (is_under_dir(resolved, line)) {
+                LOG("check_access_allowed: MATCH -> access forbidden! (%s under %s)\n",
+                    resolved, line);
+                access_forbidden = 1;
+                break;
+            }
+        }
+    }
+
+    fclose(fp);
+
+    if (access_forbidden) {
+        LOG("check_access_allowed: final decision: DENY\n");
+        return 0;
+    } else {
+        LOG("check_access_allowed: final decision: ALLOW\n");
+        return 1;
+    }
+}
+
+
+int inplace_path_move(const char *uid, char path[PATH_MAX_LEN])
+{
+    size_t root_len, user_len, path_len, new_len;
+    int slash_after_root = 0;
+    int slash_after_user = 0;
+    char user_component[PATH_MAX_LEN];
+
+    if (!path || strcmp(g_root_dir, "") == 0)
+        return -1;
+
+    root_len = strlen(g_root_dir);
+    path_len = strlen(path);
+
+    if (uid) {
+        /* Build user_uid */
+        snprintf(user_component, sizeof(user_component), "user_%s", uid);
+        user_len = strlen(user_component);
+    }
+
+    /* Need slash after root? */
+    if (g_root_dir[root_len - 1] != '/')
+        slash_after_root = 1;
+
+    /* Need slash after user_uid? */
+    if (path_len > 0 && path[0] != '/')
+        slash_after_user = 1;
+
+    /* Total new size */
+    new_len =
+        root_len +
+        slash_after_root +
+        path_len +
+        1;
+
+    if (uid) {
+        new_len += user_len + slash_after_user;
+    }
+
+
+    if (new_len > PATH_MAX_LEN)
+        return -1;
+        
+    /* Shift the original path right */
+    if (uid) {
+        memmove(
+            path + root_len + slash_after_root + user_len + slash_after_user,
+            path,
+            path_len + 1
+        );
+    } else {
+        memmove(
+            path + root_len + slash_after_root,
+            path,
+            path_len + 1
+        );
+    }
+
+    /* Copy root prefix */
+    memcpy(path, g_root_dir, root_len);
+
+    /* Slash after root */
+    size_t offset = root_len;
+    if (slash_after_root)
+        path[offset++] = '/';
+
+    if (uid) {
+        /* Insert user_uid */
+        memcpy(path + offset, user_component, user_len);
+        offset += user_len;
+    
+        /* Slash after user_uid */
+        if (slash_after_user)
+            path[offset++] = '/';
+    }
+
+    /* original path already in place */
+
+    return 0;
+}
 
 static int read_line_fd(int fd, char* buffer, int max_size)
 {
@@ -113,6 +385,7 @@ static void send_line_response(const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap);
+    LOG("Sending message %s", buf);
     write_all(g_out_fd, buf, strlen(buf));
 }
 
@@ -125,9 +398,19 @@ static void send_access_content(const char *data, size_t size)
     write_all(g_out_fd, "\n", 1);
 }
 
-static void handle_read_request(const char *uid, const char *rest)
+static void handle_read_request(const char *uid, char *rest)
 {
-    const char *path = rest;
+    char *path = rest;
+
+    inplace_path_move(uid, path);
+
+    int path_ok = check_access_allowed(uid, path);
+    if (!path_ok) {
+        send_line_response("ACCESS_ERR_NOT_ALLOWED\n");
+        LOG("Access denied for uid=%s to %s\n", uid, path);
+        return;
+    }
+
 
     if (!user_allowed(uid)) {
         send_line_response("ACCESS_DENIED %s\n", path);
@@ -163,8 +446,19 @@ static void handle_write_request(const char *uid, const char *rest)
     }
 
     *sp = '\0';
-    const char *path = tmp;
+    char *path = tmp;
     const char *content = sp + 1;
+    char content_cpy[IN_BUFFER_MAX_SIZE];
+    strcpy(content_cpy, content);
+
+    inplace_path_move(uid, path);
+
+    int path_ok = check_access_allowed(uid, path);
+    if (!path_ok) {
+        send_line_response("ACCESS_ERR_NOT_ALLOWED\n");
+        LOG("Access denied for uid=%s to %s\n", uid, path);
+        return;
+    }
 
     if (!user_allowed(uid)) {
         send_line_response("ACCESS_DENIED %s\n", path);
@@ -179,19 +473,21 @@ static void handle_write_request(const char *uid, const char *rest)
         return;
     }
 
-    size_t written = fwrite(content, 1, strlen(content), f);
+    size_t written = fwrite(content_cpy, 1, strlen(content_cpy), f);
     fclose(f);
 
     send_line_response("WRITE_OK %s\n", path);
     LOG("Wrote %zu bytes to %s for uid=%s\n", written, path, uid);
 }
 
+
+
 int main(int argc, char *argv[])
 {
     setvbuf(stdout, NULL, _IONBF, 0);
 
-    if (argc != 4) {
-        LOG("Usage: %s [fifo_router_to_access] [fifo_access_to_router] [allow_file]\n", argv[0]);
+    if (argc != 6) {
+        LOG("Usage: %s [fifo_router_to_access] [fifo_access_to_router] [allow_file] [policy_file] [root_dir]\n", argv[0]);
         return 1;
     }
 
@@ -199,6 +495,12 @@ int main(int argc, char *argv[])
     const char *fifo_out = argv[2];
     strncpy(g_allow_file, argv[3], sizeof(g_allow_file)-1);
     g_allow_file[sizeof(g_allow_file)-1] = '\0';
+
+    strncpy(g_policy_file, argv[4], sizeof(g_policy_file)-1);
+    g_policy_file[sizeof(g_policy_file)-1] = '\0';
+
+    strncpy(g_root_dir, argv[5], sizeof(g_root_dir)-1);
+    g_root_dir[sizeof(g_root_dir)-1] = '\0';
 
     /* Ensure FIFOs exist, then open them */
     create_fifo((char*)fifo_in);
