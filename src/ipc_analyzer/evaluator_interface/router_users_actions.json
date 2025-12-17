@@ -46,6 +46,13 @@
         { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" },
         { "target_index": 0, "payload": "WRITE ../user_2/file1 Hacked!\n" }
       ]
+    },
+    {
+      "name": "admin_changes_policy",
+      "interactions": [
+        { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" },
+        { "target_index": 0, "payload": "WRITE ../policy TRASH_POLICY\n" }
+      ]
     }
   ]
 }
