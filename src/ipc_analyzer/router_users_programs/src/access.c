@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/epoll.h>
+#include <errno.h>
 
 #include "common.h"
 
@@ -332,28 +334,28 @@ static ssize_t write_all(int fd, const void* buf, size_t len)
     return (ssize_t)written;
 }
 
-/* Check allow file for a given uid string. Returns 1 if allowed, 0 otherwise. */
-static int user_allowed(const char* uid_s)
-{
-    FILE *af = fopen(g_allow_file, "r");
-    if (!af) return 0;
+// /* Check allow file for a given uid string. Returns 1 if allowed, 0 otherwise. */
+// static int user_allowed(const char* uid)
+// {
+//     FILE *af = fopen(g_allow_file, "r");
+//     if (!af) return 0;
 
-    char line[512];
-    int last_val = 0;
+//     char line[512];
+//     int last_val = 0;
 
-    while (fgets(line, sizeof(line), af)) {
-        char key[64]; int val;
-        /* tolerate a few spacing variants */
-        if (sscanf(line, "[%63[^]]]= %d", key, &val) == 2 ||
-            sscanf(line, "[%63[^]] ] = %d", key, &val) == 2 ||
-            sscanf(line, "[%63[^]] ]=%d", key, &val) == 2) {
-            if (strcmp(key, uid_s) == 0) last_val = val;
-        }
-    }
+//     while (fgets(line, sizeof(line), af)) {
+//         char key[64]; int val;
+//         /* tolerate a few spacing variants */
+//         if (sscanf(line, "[%63[^]]]= %d", key, &val) == 2 ||
+//             sscanf(line, "[%63[^]] ] = %d", key, &val) == 2 ||
+//             sscanf(line, "[%63[^]] ]=%d", key, &val) == 2) {
+//             if (strcmp(key, uid) == 0) last_val = val;
+//         }
+//     }
 
-    fclose(af);
-    return last_val;
-}
+//     fclose(af);
+//     return last_val;
+// }
 
 /* Read entire file into buffer. Caller must free *out_buf. On success
  * returns 0 and sets *out_buf and *out_size. On error returns -1. */
@@ -394,7 +396,7 @@ static void send_line_response(const char *fmt, ...)
 static void send_access_content(const char *data, size_t size)
 {
     char hdr[64];
-    snprintf(hdr, sizeof(hdr), "ACCESS_CONTENT %zu\n", size);
+    snprintf(hdr, sizeof(hdr), "READ_CONTENT %zu\n", size);
     write_all(g_out_fd, hdr, strlen(hdr));
     if (size > 0) write_all(g_out_fd, data, size);
     write_all(g_out_fd, "\n", 1);
@@ -403,21 +405,24 @@ static void send_access_content(const char *data, size_t size)
 static void handle_read_request(const char *uid, char *rest)
 {
     char *path = rest;
+    int is_admin = strncmp(uid, "3", 1);
 
-    inplace_path_move(uid, path);
-
-    int path_ok = check_access_allowed(uid, path);
-    if (!path_ok) {
-        send_line_response("ACCESS_ERR_NOT_ALLOWED\n");
-        LOG("Access denied for uid=%s to %s\n", uid, path);
-        return;
-    }
-
-
-    if (!user_allowed(uid)) {
-        send_line_response("ACCESS_DENIED %s\n", path);
-        LOG("Access denied for uid=%s to %s\n", uid, path);
-        return;
+    if (!is_admin) {
+        inplace_path_move(uid, path);
+    
+        int path_ok = check_access_allowed(uid, path);
+        if (!path_ok) {
+            send_line_response("ACCESS_ERR_NOT_ALLOWED\n");
+            LOG("Access denied for uid=%s to %s\n", uid, path);
+            return;
+        }
+    
+    
+        // if (!user_allowed(uid)) {
+        //     send_line_response("ACCESS_DENIED %s\n", path);
+        //     LOG("Access denied for uid=%s to %s\n", uid, path);
+        //     return;
+        // }
     }
 
     char *content = NULL;
@@ -453,19 +458,19 @@ static void handle_write_request(const char *uid, const char *rest)
     char content_cpy[IN_BUFFER_MAX_SIZE];
     strcpy(content_cpy, content);
 
-    inplace_path_move(uid, path);
+    int is_admin = !strncmp(uid, "3", 1);
 
-    int path_ok = check_access_allowed(uid, path);
-    if (!path_ok) {
-        send_line_response("ACCESS_ERR_NOT_ALLOWED\n");
-        LOG("Access denied for uid=%s to %s\n", uid, path);
-        return;
-    }
+    if (!is_admin) {
+        inplace_path_move(uid, path);
 
-    if (!user_allowed(uid)) {
-        send_line_response("ACCESS_DENIED %s\n", path);
-        LOG("Write denied for uid=%s to %s\n", uid, path);
-        return;
+        int path_ok = check_access_allowed(uid, path);
+        if (!path_ok) {
+            send_line_response("ACCESS_ERR_NOT_ALLOWED\n");
+            LOG("Access denied for uid=%s to %s\n", uid, path);
+            return;
+        }
+    } else {
+        inplace_path_move(NULL, path);
     }
 
     FILE *f = fopen(path, "wb");
@@ -480,6 +485,40 @@ static void handle_write_request(const char *uid, const char *rest)
 
     send_line_response("WRITE_OK %s\n", path);
     LOG("Wrote %zu bytes to %s for uid=%s\n", written, path, uid);
+}
+
+
+void handle_request(char line[IN_BUFFER_MAX_SIZE])
+{
+    LOG("Access request: %s\n", line);
+
+    /* parse: <uid> <OP> <rest> (rest may contain spaces) */
+    char uid[64]; char op[32]; char rest[PATH_MAX_LEN];
+    int n = sscanf(line, "%63s %31s %511[^\\n]", uid, op, rest);
+    if (n < 2) {
+        send_line_response("ACCESS_ERR_BAD_FORMAT\n");
+        LOG("Malformed access request: %s\n", line);
+        return;
+    }
+
+    if (strcmp(op, "READ") == 0) {
+        if (n < 3) { 
+            send_line_response("ACCESS_ERR_BAD_FORMAT\n"); 
+            LOG("Malformed READ request: %s\n", line); 
+            return; 
+        }
+        handle_read_request(uid, rest);
+    } else if (strcmp(op, "WRITE") == 0) {
+        if (n < 3) { 
+            send_line_response("WRITE_ERR_BAD_FORMAT\n"); 
+            LOG("Malformed WRITE request: %s\n", line); 
+            return; 
+        }
+        handle_write_request(uid, rest);
+    } else {
+        send_line_response("ACCESS_ERR_UNKNOWN_OP\n");
+        LOG("Unknown op %s in access request\n", op);
+    }
 }
 
 
@@ -516,35 +555,29 @@ int main(int argc, char *argv[])
 
     char line[IN_BUFFER_MAX_SIZE];
 
+    int ep = make_epoll(&g_in_fd, 1);
+    if (ep < 0) {
+        LOG("Issue when creating epoll");
+        return 1;
+    }
+
     while (1) {
-        int err = read_line_fd(g_in_fd, line, sizeof(line));
-        if (err != 0) {
-            usleep(100000);
-            continue;
+        struct epoll_event events[8];
+        int n = epoll_wait(ep, events, 8, -1);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            LOG("Error on epoll wait");
+            break;
         }
-
-        if (line[0] == '\0') continue;
-
-        LOG("Access request: %s\n", line);
-
-        /* parse: <uid> <OP> <rest> (rest may contain spaces) */
-        char uid_s[64]; char op[32]; char rest[PATH_MAX_LEN];
-        int n = sscanf(line, "%63s %31s %511[^\\n]", uid_s, op, rest);
-        if (n < 2) {
-            send_line_response("ACCESS_ERR_BAD_FORMAT\n");
-            LOG("Malformed access request: %s\n", line);
-            continue;
-        }
-
-        if (strcmp(op, "READ") == 0) {
-            if (n < 3) { send_line_response("ACCESS_ERR_BAD_FORMAT\n"); LOG("Malformed READ request: %s\n", line); continue; }
-            handle_read_request(uid_s, rest);
-        } else if (strcmp(op, "WRITE") == 0) {
-            if (n < 3) { send_line_response("WRITE_ERR_BAD_FORMAT\n"); LOG("Malformed WRITE request: %s\n", line); continue; }
-            handle_write_request(uid_s, rest);
-        } else {
-            send_line_response("ACCESS_ERR_UNKNOWN_OP\n");
-            LOG("Unknown op %s in access request\n", op);
+        for(int i=0; i<n; ++i){
+            if (events[i].events & EPOLLIN) {
+                int err = read_line_fd(g_in_fd, line, IN_BUFFER_MAX_SIZE);
+                if (line[0] == '\0') continue;
+                if(err == 0){
+                    if(strlen(line) == 0) continue;
+                    handle_request(line);
+                }
+            }
         }
     }
 

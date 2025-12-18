@@ -7,6 +7,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
+#include <sys/epoll.h>
+#include <errno.h>
 
 #include "common.h"
 
@@ -14,6 +16,9 @@
 #define IN_BUFFER_MAX_SIZE 512
 
 static int g_in_fd = -1;
+static int g_out_fd = -1;
+const char* g_password_file;
+const char* g_allow_file;
 
 static int read_line_fd(int fd, char* buffer, int max_size)
 {
@@ -77,20 +82,68 @@ static int write_allow_entry(const char *allow_file, const char *uid, int ok)
     return 0;
 }
 
+
+void respond(const char* message)
+{
+    int len = strlen(message);
+    // write plain line back to user (message + newline)
+    write(g_out_fd, message, len);
+    write(g_out_fd, "\n", 1);
+}
+
+
+void handle_request(char line[IN_BUFFER_MAX_SIZE])
+{
+    LOG("Auth request: %s\n", line);
+
+    char uid_s[64];
+    char pass[256];
+    char expected[256];
+
+    if(parse_auth_request(line, uid_s, sizeof(uid_s), pass, sizeof(pass)) != 0){
+        LOG("Malformed auth request: %s\n", line);
+        return;
+    }
+
+    if(read_expected_password(g_password_file, uid_s, expected, sizeof(expected)) != 0){
+        LOG("Could not find password for uid=%s in %s\n", uid_s, g_password_file);
+        return;
+    }
+
+    int ok = (strcmp(pass, expected) == 0) ? 1 : 0;
+    if(write_allow_entry(g_allow_file, uid_s, ok) != 0){
+        LOG("Could not open allow file %s\n", g_allow_file);
+        return;
+    }
+
+    if(ok) {
+        respond("AUTH_OK");
+    } else {
+        respond("AUTH_ERROR");
+    }
+
+    LOG("Auth result for uid=%s -> %d\n", uid_s, ok);
+}
+
+
 int main(int argc, char *argv[])
 {
     setvbuf(stdout, NULL, _IONBF, 0);
 
-    if(argc != 4){
-        LOG("Usage: %s [fifo_in] [password_file] [allow_file]\n", argv[0]);
+    if(argc != 5){
+        LOG("Usage: %s [fifo_in] [fifo_out] [password_file] [allow_file]\n", argv[0]);
         return 1;
     }
 
     const char* fifo_in = argv[1];
-    const char* password_file = argv[2];
-    const char* allow_file = argv[3];
+    const char* fifo_out = argv[2];
+    g_password_file = argv[3];
+    g_allow_file = argv[4];
 
-    if(strlen(fifo_in) >= PATH_MAX_LEN || strlen(password_file) >= PATH_MAX_LEN || strlen(allow_file) >= PATH_MAX_LEN){
+    if(strlen(fifo_in) >= PATH_MAX_LEN 
+    || strlen(fifo_out) >= PATH_MAX_LEN 
+    || strlen(g_password_file) >= PATH_MAX_LEN 
+    || strlen(g_allow_file) >= PATH_MAX_LEN){
         LOG("Path too long\n");
         return 1;
     }
@@ -103,39 +156,38 @@ int main(int argc, char *argv[])
         return 2;
     }
 
-    LOG("Auth process started, monitoring %s, password file=%s, allow=%s\n", fifo_in, password_file, allow_file);
+    g_out_fd = open_fifo_wr(fifo_out);
+    if(g_out_fd == -1){
+        LOG("Could not open fifo %s\n", fifo_out);
+        return 2;
+    }
+
+    LOG("Auth process started, monitoring %s, sending on %s, password file=%s, allow=%s\n", fifo_in, fifo_out, g_password_file, g_allow_file);
 
     char line[IN_BUFFER_MAX_SIZE];
-    char uid_s[64];
-    char pass[256];
-    char expected[256];
+
+    int ep = make_epoll(&g_in_fd, 1);
+    if (ep < 0) {
+        LOG("Issue when creating epoll");
+        return 1;
+    }
 
     while(1){
-        int err = read_line_fd(g_in_fd, line, IN_BUFFER_MAX_SIZE);
-        if(err == 0){
-            if(strlen(line) == 0) continue;
-            LOG("Auth request: %s\n", line);
-
-            if(parse_auth_request(line, uid_s, sizeof(uid_s), pass, sizeof(pass)) != 0){
-                LOG("Malformed auth request: %s\n", line);
-                continue;
+        struct epoll_event events[8];
+        int n = epoll_wait(ep, events, 8, -1);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            LOG("Error on epoll wait");
+            break;
+        }
+        for(int i=0; i<n; ++i){
+            if (events[i].events & EPOLLIN) {
+                int err = read_line_fd(g_in_fd, line, IN_BUFFER_MAX_SIZE);
+                if(err == 0){
+                    if(strlen(line) == 0) continue;
+                    handle_request(line);
+                }
             }
-
-            if(read_expected_password(password_file, uid_s, expected, sizeof(expected)) != 0){
-                LOG("Could not find password for uid=%s in %s\n", uid_s, password_file);
-                continue;
-            }
-
-            int ok = (strcmp(pass, expected) == 0) ? 1 : 0;
-            if(write_allow_entry(allow_file, uid_s, ok) != 0){
-                LOG("Could not open allow file %s\n", allow_file);
-                continue;
-            }
-
-            LOG("Auth result for uid=%s -> %d\n", uid_s, ok);
-        } else {
-            struct timespec ts = {0, 100000000}; /* 100ms */
-            nanosleep(&ts, NULL);
         }
     }
 

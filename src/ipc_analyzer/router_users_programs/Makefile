@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -g
 
 SRC = src
-BUILD = build/exec/run
+BUILD = build/exec/
 
 all: $(BUILD)/router $(BUILD)/user $(BUILD)/auth $(BUILD)/access
 

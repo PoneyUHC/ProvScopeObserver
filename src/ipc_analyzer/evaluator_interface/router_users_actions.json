@@ -1,58 +1,72 @@
 {
-  "system_name": "router_users_programs",
-  "system_executable": "router_users_programs/run.py",
-  "system_executable_args": [],
-  "system_processes": [
-    "router",
-    "auth",
-    "access"
-  ],
-  "targets": [
-    "router_users_programs/build/exec/run/fifo_attacker_to_u1",
-    "router_users_programs/build/exec/run/fifo_attacker_to_u2"
-  ],
-  "test_cases": [
-    {
-      "name": "user1_tries_access_with_failed_auth",
-      "interactions": [
-        { "target_index": 0, "payload": "AUTH 1 wrong_password\n" },
-        { "target_index": 0, "payload": "WRITE file1 Hello_from_1\n" }
-      ]
-    },
-    {
-      "name": "user1_tries_access_with_success_auth",
-      "interactions": [
-        { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" },
-        { "target_index": 0, "payload": "WRITE file1 Hello_from_1\n" }
-      ]
-    },
-    {
-      "name": "user1_read_existing_file_succeed",
-      "interactions": [
-        { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" },
-        { "target_index": 0, "payload": "WRITE file1 Hello_from_1\n" },
-        { "target_index": 0, "payload": "ACCESS file1\n" }
-      ]
-    },
-    {
-      "name": "malformed_message",
-      "interactions": [
-        { "target_index": 0, "payload": "BADCOMMAND\n" }
-      ]
-    },
-    {
-      "name": "access_write_denied_user1",
-      "interactions": [
-        { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" },
-        { "target_index": 0, "payload": "WRITE ../user_2/file1 Hacked!\n" }
-      ]
-    },
-    {
-      "name": "admin_changes_policy",
-      "interactions": [
-        { "target_index": 0, "payload": "AUTH 1 user1_is_da_best\n" },
-        { "target_index": 0, "payload": "WRITE ../policy TRASH_POLICY\n" }
-      ]
-    }
-  ]
+    "system_name": "router_users_programs",
+    "system_executable": "router_users_programs/run.py",
+    "system_executable_args": [],
+    "system_processes": [
+        "router",
+        "auth",
+        "access"
+    ],
+    "targets": [
+        "router_users_programs/build/exec/run/fs/comms/fifo_comm_to_u1",
+        "router_users_programs/build/exec/run/fs/comms/fifo_comm_to_u2",
+        "router_users_programs/build/exec/run/fs/comms/fifo_comm_to_admin"
+        ],
+    "test_cases": [
+        {
+          "name": "admin_changes_policy",
+          "interactions": [
+            { "target_index": 2, "payload": "AUTH admin_the_goat\n" },
+            { "target_index": 2, "payload": "WRITE policy TRASH_POLICY\n" }
+          ]
+        },
+        {
+            "name": "user_authenticates",
+            "interactions": [
+                { "target_index": 0, "payload": "AUTH user1_is_da_best\n" }
+            ]
+        },
+        {
+            "name": "user1_tries_access_with_failed_auth",
+            "interactions": [
+                { "target_index": 0, "payload": "AUTH wrong_password\n" },
+                { "target_index": 0, "payload": "WRITE file1 Hello_from_1\n" }
+            ]
+        },
+        {
+            "name": "user1_tries_access_with_success_auth",
+            "interactions": [
+                { "target_index": 0, "payload": "AUTH user1_is_da_best\n" },
+                { "target_index": 0, "payload": "WRITE file1 Hello_from_1\n" }
+            ]
+        },
+        {
+            "name": "user2_tries_access_with_success_auth",
+            "interactions": [
+                { "target_index": 1, "payload": "AUTH user2_is_better\n" },
+                { "target_index": 1, "payload": "WRITE file2 Hello_from_2\n" }
+            ]
+        },
+        {
+            "name": "user1_read_existing_file_succeed",
+            "interactions": [
+                { "target_index": 0, "payload": "AUTH user1_is_da_best\n" },
+                { "target_index": 0, "payload": "WRITE file1 Hello_from_1\n" },
+                { "target_index": 0, "payload": "READ file1\n" }
+            ]
+        },
+        {
+            "name": "malformed_message",
+            "interactions": [
+                { "target_index": 0, "payload": "BADCOMMAND\n" }
+            ]
+        },
+        {
+            "name": "access_write_denied_user1",
+            "interactions": [
+                { "target_index": 0, "payload": "AUTH user1_is_da_best\n" },
+                { "target_index": 0, "payload": "WRITE ../user_2/file1 Hacked!\n" }
+            ]
+        }
+    ]
 }
