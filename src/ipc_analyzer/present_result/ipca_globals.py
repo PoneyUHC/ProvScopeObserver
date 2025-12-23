@@ -268,6 +268,7 @@ class IPCAModel:
         self.processes: List[Process] = []
         self.resources: List[Resource] = []
         self.events: List[FSEvent] = []
+        self.ext_colors: Dict[str, str] = {}
 
     def has_process(self, pid):
         for p in self.processes:

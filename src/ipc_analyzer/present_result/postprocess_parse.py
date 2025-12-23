@@ -123,3 +123,11 @@ def __normalize_write(process_resource_map: dict[tuple[str, int], Resource], eve
     event.source_entities.append(resource)
     event.target_entities.append(resource)
 
+
+def add_color_information():
+    GlobalModel.ext_colors = {
+        "OpenEvent": "yellow",
+        "WriteEvent": "blue",
+        "ExitReadEvent": "green",
+        "CloseEvent": "black"
+    }

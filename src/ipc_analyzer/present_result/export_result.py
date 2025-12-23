@@ -6,7 +6,7 @@ from ipc_analyzer.present_result.parse_logs.parse_close import parse_bpf_close_l
 from ipc_analyzer.present_result.parse_logs.parse_read import parse_bpf_read_logs
 from ipc_analyzer.present_result.parse_logs.parse_write import parse_bpf_write_logs
 
-from ipc_analyzer.present_result.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events
+from ipc_analyzer.present_result.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events, add_color_information
 
 from ipc_analyzer.present_result.ipca_globals import Entity, Event, GlobalModel, IPCAModel, Process, Resource
 
@@ -14,7 +14,7 @@ import json
 from json import JSONEncoder
 
 from pathlib import Path
-import code
+
 
 def serialize_lookup(object: int | str | Entity):
     if isinstance(object, Process):
@@ -51,7 +51,14 @@ class IPCAModelEncoder(JSONEncoder):
             return {
                 'processes': [p.__dict__ for p in o.processes],
                 'resources': [r.__dict__ for r in o.resources],
-                'events': [serialize_event(e) for e in o.events]
+                'events': [serialize_event(e) for e in o.events],
+                '_extensions' : [
+                    {
+                        "tag": "EXT_EVENT_COLOR",
+                        "data": o.ext_colors
+                    }
+                ]
+                    
             }
         else:
             print(f"[EXPORT - FATAL] Given object is not an IPCAModel: {o}")
@@ -73,10 +80,13 @@ def main():
     parse_bpf_read_logs(f"{root_dir}/trace/run/logs/trace_read.logs")
     parse_bpf_write_logs(f"{root_dir}/trace/run/logs/trace_write.logs")
 
+    GlobalModel.events = list(filter(lambda e: e.event_type != "EnterReadEvent", GlobalModel.events))
+
     sort_events()
     normalize_timestamps()
     add_stdios()
     normalize_events()
+    add_color_information()
 
     output_path = f"{root_dir}/present_result/output/{out_filename}"
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
