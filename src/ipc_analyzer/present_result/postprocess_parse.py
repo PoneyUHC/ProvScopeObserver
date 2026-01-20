@@ -86,6 +86,9 @@ def __normalize_open(process_resource_map: dict[tuple[str, int], Resource], even
 def __normalize_close(process_resource_map: dict[tuple[str, int], Resource], event: CloseEvent):
     process_uuid = event.process.get_uuid()
     resource_key = (process_uuid, event.fd)
+ 
+    event.other_entities.append(process_resource_map[resource_key])
+    event.target_entities.append(process_resource_map[resource_key])
 
     if resource_key in process_resource_map:
         del process_resource_map[resource_key]

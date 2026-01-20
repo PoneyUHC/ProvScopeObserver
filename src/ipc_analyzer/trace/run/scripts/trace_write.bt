@@ -6,7 +6,7 @@ BEGIN
 
 
 tracepoint:syscalls:sys_enter_write
-/ comm == "router" || comm == "auth" || comm == "access" || false /
+/ comm == "router.bin" || comm == "client.bin" || comm == "log_collector.b" || false /
 {
     $id = @next_write_id++;
 

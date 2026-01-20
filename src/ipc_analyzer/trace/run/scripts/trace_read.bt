@@ -9,7 +9,7 @@ BEGIN
 
 
 tracepoint:syscalls:sys_enter_read
-/ comm == "router" || comm == "auth" || comm == "access" || false /
+/ comm == "router.bin" || comm == "client.bin" || comm == "log_collector.b" || false /
 {
     // Allocate a new event id
     $id = @next_read_id++;

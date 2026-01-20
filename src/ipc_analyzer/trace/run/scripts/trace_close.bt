@@ -11,7 +11,7 @@ BEGIN
 }
 
 tracepoint:syscalls:sys_enter_close
-/ comm == "router" || comm == "auth" || comm == "access" || false /
+/ comm == "router.bin" || comm == "client.bin" || comm == "log_collector.b" || false /
 {
     @entered_close[pid] = 1;
     @fd[pid] = args->fd;

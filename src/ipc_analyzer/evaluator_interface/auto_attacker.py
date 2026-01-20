@@ -1,6 +1,7 @@
 
 import sys
 import os
+import time
 import json
 import subprocess
 import tempfile
@@ -173,6 +174,17 @@ def interpret_payload_to_bytes(p: str) -> bytes:
     return decoded.encode('latin-1')
 
 
+def create_empty_script() -> str:
+
+    # Create a temporary bash script
+    temp_script = tempfile.NamedTemporaryFile(mode='w', suffix='.bash', delete=False)
+    temp_script.close()
+
+    os.chmod(temp_script.name, 0o755)
+
+    return temp_script.name
+
+
 def create_test_case_script(test_case_name: str, test_case_data: dict, targets: list, evaluator_actions_file: str) -> str:
     """
     Create a temporary bash script that directly executes the test_case by writing to FIFOs.
@@ -289,20 +301,14 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
         print(f"Warning: could not create report dir {report_dir}: {e}")
     
     temp_scripts = []  # Keep track of temp script files for cleanup
-    
+
+
     try:
-        for test_case in test_cases:
-            test_case_name = test_case.get("name")
-            if not test_case_name:
-                print("Warning: Test case without name, skipping")
-                continue
-
-            print(f"\n{'='*60}")
-            print(f"Processing test_case: {test_case_name}")
-            print(f"{'='*60}")
-
-            # Create temporary script for this test_case
-            temp_script_path = create_test_case_script(test_case_name, test_case, targets, evaluator_actions_file)
+        if len(test_cases) == 0:
+            print("No test cases have been found. Running the system for 10 seconds.")
+            
+            test_case_name = "automatic_10_seconds_run"
+            temp_script_path = create_empty_script()
             temp_scripts.append(temp_script_path)
 
             # Assemble a report filename under present_result/output/{system_name}
@@ -310,24 +316,51 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
             
             # Call run.bash with: 1 {report_path} 3 {temp_script} {system_executable}
             # Format: run.bash [n_exec] [report_filename] [wait_time] [evaluator_actions_script] [system_executable] [system_executable_args...]
-            cmd = ["bash", run_bash_path, "1", report_path, "3", temp_script_path, ",".join(system_processes), system_executable]
+            cmd = ["bash", run_bash_path, "1", report_path, "10", temp_script_path, ",".join(system_processes), system_executable]
             cmd.extend(system_executable_args)
             print(f"Executing: {' '.join(cmd)}")
             
-            try:
-                subprocess.run(cmd, check=True)
-                print(f"Test case '{test_case_name}' completed successfully")
-            except subprocess.CalledProcessError as e:
-                print(f"Error: Test case '{test_case_name}' failed with exit code {e.returncode}")
-                sys.exit(1)
-            except Exception as e:
-                print(f"Error: Failed to execute run.bash for test_case '{test_case_name}': {e}")
-                sys.exit(1)
+            subprocess.run(cmd)
+            print("10 seconds run finished")
+
+        else :
+            for test_case in test_cases:
+                test_case_name = test_case.get("name")
+                if not test_case_name:
+                    print("Warning: Test case without name, skipping")
+                    continue
+
+                print(f"\n{'='*60}")
+                print(f"Processing test_case: {test_case_name}")
+                print(f"{'='*60}")
+
+                # Create temporary script for this test_case
+                temp_script_path = create_test_case_script(test_case_name, test_case, targets, evaluator_actions_file)
+                temp_scripts.append(temp_script_path)
+
+                # Assemble a report filename under present_result/output/{system_name}
+                report_path = os.path.join(report_dir, test_case_name)
+                
+                # Call run.bash with: 1 {report_path} 3 {temp_script} {system_executable}
+                # Format: run.bash [n_exec] [report_filename] [wait_time] [evaluator_actions_script] [system_executable] [system_executable_args...]
+                cmd = ["bash", run_bash_path, "1", report_path, "3", temp_script_path, ",".join(system_processes), system_executable]
+                cmd.extend(system_executable_args)
+                print(f"Executing: {' '.join(cmd)}")
+                
+                try:
+                    subprocess.run(cmd, check=True)
+                    print(f"Test case '{test_case_name}' completed successfully")
+                except subprocess.CalledProcessError as e:
+                    print(f"Error: Test case '{test_case_name}' failed with exit code {e.returncode}")
+                    sys.exit(1)
+                except Exception as e:
+                    print(f"Error: Failed to execute run.bash for test_case '{test_case_name}': {e}")
+                    sys.exit(1)
+            
+            print(f"\n{'='*60}")
+            print("All test_cases completed successfully!")
+            print(f"{'='*60}")
         
-        print(f"\n{'='*60}")
-        print("All test_cases completed successfully!")
-        print(f"{'='*60}")
-    
     finally:
         # Clean up temporary files
         for temp_script in temp_scripts:

@@ -11,7 +11,7 @@ BEGIN
 }
 
 tracepoint:syscalls:sys_enter_openat
-/ comm == "router" || comm == "auth" || comm == "access" || false /
+/ comm == "router.bin" || comm == "client.bin" || comm == "log_collector.b" || false /
 {
     $id = @next_open_id++;
     @open_id[pid] = $id;

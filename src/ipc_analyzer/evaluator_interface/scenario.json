@@ -8,47 +8,5 @@
         "client.bin",
         "log_collector.b"
     ],
-    "targets" : [
-        "programs/build/exec/run/att_r",
-        "programs/build/exec/run/any_l"
-    ],
-    "test_cases" : [
-        {
-            "name" : "Send_hello_to_A0",
-            "interactions": [
-                {
-                    "target_index" : 0,
-                    "payload" : "\\x0c\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00"
-                },
-                {
-                    "target_index" : 0,
-                    "payload" : "\\x0f\\x00\\x00\\x00\\x01\\x00\\x00\\x00hello 0"
-                }
-            ]
-        },
-
-        {
-            "name" : "Send_hello_to_A1",
-            "interactions": [
-                {
-                    "target_index" : 0,
-                    "payload" : "\\x0c\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00"
-                },
-                {
-                    "target_index" : 0,
-                    "payload" : "\\x0f\\x00\\x00\\x00\\x01\\x00\\x00\\x00hello 1"
-                }
-            ]
-        },
-
-        {
-            "name" : "Request_read_and_parse_logs",
-            "interactions": [
-                {
-                    "target_index" : 1,
-                    "payload" : "\\x00"
-                }
-            ]
-        }
-    ]
+    "test_cases" : []
 }
