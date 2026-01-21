@@ -23,10 +23,10 @@ def start(n_clients: int, talk_delay_microsecond: int):
 
     router_to_clients = [f"run/r_client{i}" for i in range(n_clients)]
     clients_to_router = [f"run/client{i}_r" for i in range(n_clients)]
-    log_files = [f"run/logs_{i}" for i in range(n_clients)]
+    log_file = "run/logs"
 
     with open('run/router.logs', 'w') as fout:
-        p = subprocess.Popen(['./router.bin', str(n_clients), *log_files, *clients_to_router, *router_to_clients], stdout=fout)
+        p = subprocess.Popen(['./router.bin', str(n_clients), log_file, *clients_to_router, *router_to_clients], stdout=fout)
         procs.append(p)
 
     for i in range(n_clients):
@@ -35,7 +35,7 @@ def start(n_clients: int, talk_delay_microsecond: int):
             procs.append(p)
 
     with open('run/log_c.logs', 'w') as fout:
-        p = subprocess.Popen(['./log_collector.bin', str(n_clients), *log_files, 'run/any_l', 'run/goal'], stdout=fout)
+        p = subprocess.Popen(['./log_collector.bin', log_file, 'run/any_l', 'run/goal'], stdout=fout)
         procs.append(p)
     
     return procs

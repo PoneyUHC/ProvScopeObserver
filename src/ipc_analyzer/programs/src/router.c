@@ -21,7 +21,7 @@ static int g_STATE_token_owner;
 static int g_n_targets;
 static int *g_out_fds;
 static int *g_in_fds;
-static int *g_log_fds;
+static int g_log_fd;
 
 static char g_in_msg[IN_BUFFER_MAX_SIZE];
 static int g_in_msg_size;
@@ -77,7 +77,7 @@ int API_send_message(int in_fd, int out_fd)
     g_in_msg[g_in_msg_size] = '\0';
 
     snprintf(g_log_buffer, 512, "%.1d,%s\n", g_STATE_destinations[g_STATE_token_owner], g_in_msg);
-    write(g_log_fds[g_STATE_token_owner], g_log_buffer, 2 + g_in_msg_size + 1);
+    write(g_log_fd, g_log_buffer, 2 + g_in_msg_size + 1);
     
     return 0;
 }
@@ -190,27 +190,23 @@ void loop()
 
 void cleanup()
 {
-    for(int i=0; i<g_n_targets; ++i){
-        close(g_log_fds[i]);
-    }
+    close(g_log_fd);
+
     for(int i=0; i<g_n_targets; ++i){
         close_fifo(g_out_fds[i]);
         close_fifo(g_in_fds[i]);
     }
     free(g_in_fds); 
     free(g_out_fds);
-    free(g_log_fds);
 }
 
 
-int open_logs(char* argv[]) 
+int open_log_file(char* argv[]) 
 {
-    for(int i=0; i<g_n_targets; ++i){
-        g_log_fds[i] = open(argv[2+i], O_WRONLY | O_CREAT, S_IRWXU);
-        if(g_log_fds[i] == -1){
-            LOG("Could not open file %s\n", argv[2+i]);
-            return 2;
-        }
+    g_log_fd = open(argv[2], O_WRONLY | O_CREAT, S_IRWXU);
+    if(g_log_fd == -1){
+        LOG("Could not open file %s\n", argv[2]);
+        return 2;
     }
 
     return 0;
@@ -270,12 +266,13 @@ int main(int argc, char *argv[])
 {
     setvbuf(stdout, NULL, _IONBF, 0);
 
-    g_log_fds = NULL;
     g_in_fds = NULL;
     g_out_fds = NULL;
+    
+    g_log_fd = -1;
 
     if(argc < 4) {
-        LOG("Usage: %s [n_targets] [log_filename]* [fifo_in]* [fifo_out]*\n", argv[0]);
+        LOG("Usage: %s [n_targets] [log_filename] [fifo_in]* [fifo_out]*\n", argv[0]);
         return 1;
     }
 
@@ -284,9 +281,9 @@ int main(int argc, char *argv[])
         LOG("Number of targets must be at least 2, at most 5\n");
         return 1;
     }
+
     g_in_fds = (int*) malloc(g_n_targets * sizeof(int));
     g_out_fds = (int*) malloc(g_n_targets * sizeof(int));
-    g_log_fds = (int*) malloc(g_n_targets * sizeof(int));
     
     g_STATE_destinations = malloc(g_n_targets * sizeof(int));
     for(int i=0; i<g_n_targets; ++i) {
@@ -294,21 +291,21 @@ int main(int argc, char *argv[])
         g_STATE_destinations[i] = i;
     }
 
-    if(argc != 2+3*g_n_targets){
-        LOG("Usage: %s [n_targets] [log_filename]* [fifo_in]* [fifo_out]* \n", argv[0]);
+    if(argc != 3+2*g_n_targets){
+        LOG("Usage: %s [n_targets] [log_filename] [fifo_in]* [fifo_out]* \n", argv[0]);
         return 1;
     }
 
     
-    for(int i=3; i<2+3*g_n_targets; ++i){
+    for(int i=2; i<3+2*g_n_targets; ++i){
         if(strlen(argv[i]) >= PATH_MAX_LEN){
             LOG("File path too long : %s\n", argv[i]);
             return 1;
         }
     }
 
-    int err = 0;
-    if (open_logs(argv)) cleanup(argv);
+    int err = 0; 
+    if (open_log_file(argv)) cleanup(argv);
     if (create_fifos(argv)) cleanup(argv);
     if (open_out_fifos(argv)) cleanup(argv);
     if (open_in_fifos_non_blocking(argv)) cleanup(argv);
