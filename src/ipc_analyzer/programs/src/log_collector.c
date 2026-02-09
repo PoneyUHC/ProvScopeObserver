@@ -150,9 +150,9 @@ void cleanup()
 
 int open_log_file(char* argv[])
 {
-    g_log_fd = open(argv[2], O_RDONLY);
+    g_log_fd = open(argv[1], O_RDONLY);
     if(g_log_fd == -1){
-        LOG("Could not open file %s\n", argv[2]);
+        LOG("Could not open file %s\n", argv[1]);
         return 2;
     }
 
@@ -162,9 +162,9 @@ int open_log_file(char* argv[])
 
 int create_fifos(char* argv[]) 
 {
-    int err = create_fifo(argv[3]);
+    int err = create_fifo(argv[2]);
     if(err){
-        LOG("Could not create fifo %s\n", argv[3]);
+        LOG("Could not create fifo %s\n", argv[2]);
         return 2;
     }
 
@@ -221,13 +221,13 @@ int main(int argc, char *argv[])
     }
 
     if (open_log_file(argv)) cleanup();
-    if (create_fifos(argv)) cleanup(argv);
-    if (open_in_fifos_non_blocking(argv)) cleanup(argv);
-    if (open_goal(argv)) cleanup(argv);
+    if (create_fifos(argv)) cleanup();
+    if (open_in_fifos_non_blocking(argv)) cleanup();
+    if (open_goal(argv)) cleanup();
     
     loop();
 
-    cleanup(argv);
+    cleanup();
 
     return 0;
 }

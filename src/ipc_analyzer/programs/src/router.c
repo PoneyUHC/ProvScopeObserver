@@ -217,9 +217,9 @@ int create_fifos(char* argv[])
 {
     int err;
     for(int i=0; i<2*g_n_targets; ++i){
-        err = create_fifo(argv[2+g_n_targets+i]);
+        err = create_fifo(argv[3+i]);
         if(err){
-            LOG("Could not create fifo %s\n", argv[2+g_n_targets+i]);
+            LOG("Could not create fifo %s\n", argv[3+i]);
             return 2;
         }
     }
@@ -231,9 +231,9 @@ int create_fifos(char* argv[])
 int open_out_fifos(char* argv[]) 
 {
     for(int i=0; i<g_n_targets; ++i){
-        g_out_fds[i] = open(argv[2+2*g_n_targets+i], O_WRONLY);
+        g_out_fds[i] = open(argv[3+g_n_targets+i], O_WRONLY);
         if(g_out_fds[i] == -1){
-            LOG("Could not open fifo %s\n", argv[2+2*g_n_targets+i]);
+            LOG("Could not open fifo %s\n", argv[3+g_n_targets+i]);
             return 2;
         }
     }
@@ -245,9 +245,9 @@ int open_out_fifos(char* argv[])
 int open_in_fifos_non_blocking(char* argv[]) 
 {
     for(int i=0; i<g_n_targets; ++i){
-        g_in_fds[i] = open(argv[2+g_n_targets+i], O_RDONLY);
+        g_in_fds[i] = open(argv[3+i], O_RDONLY);
         if(g_in_fds[i] == -1){
-            LOG("Could not open fifo %s\n", argv[2+g_n_targets+i]);
+            LOG("Could not open fifo %s\n", argv[3+i]);
             return 2;
         }
     }
@@ -304,16 +304,16 @@ int main(int argc, char *argv[])
         }
     }
 
-    int err = 0; 
-    if (open_log_file(argv)) cleanup(argv);
-    if (create_fifos(argv)) cleanup(argv);
-    if (open_out_fifos(argv)) cleanup(argv);
-    if (open_in_fifos_non_blocking(argv)) cleanup(argv);
+    
+    if (open_log_file(argv)) cleanup();
+    if (create_fifos(argv)) cleanup();
+    if (open_out_fifos(argv)) cleanup();
+    if (open_in_fifos_non_blocking(argv)) cleanup();
 
 
     loop();
 
-    cleanup(argv);
+    cleanup();
 
     return 0;
 }

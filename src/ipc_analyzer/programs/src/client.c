@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
     g_in_fd = open(argv[2], O_RDONLY);
     if(g_in_fd == -1){
         LOG("Could not open input fifo %s\n", argv[2]);
-        cleanup(argv);
+        cleanup();
         return 2;
     }
 
@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
     g_out_fd = open(argv[3], O_WRONLY);
     if(g_out_fd == -1){
         LOG("Could not open input fifo %s\n", argv[3]);
-        cleanup(argv);
+        cleanup();
         return 2;
     }
 
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
     g_next_talk_delay = get_delay_ns();
     loop();
 
-    cleanup(argv);
+    cleanup();
 
     return 0;
 }
