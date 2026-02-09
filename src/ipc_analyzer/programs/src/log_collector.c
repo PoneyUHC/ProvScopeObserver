@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/epoll.h>
+#include <errno.h>
 #include <time.h>
 
 #include "common.h"
@@ -105,22 +107,35 @@ int handle_input()
 
 void loop()
 {
+    int fifos[1] = {g_in_fd};
+    int ep = make_epoll(fifos, 1);
+    if (ep < 0) {
+        LOG("Issue when creating epoll\n");
+        return;
+    }
+
     int err;
     int n_read;
 
     while(1){
-        
-        LOG("Reading input fifo\n");
-        n_read = read(g_in_fd, &g_received_command, 4);
+        struct epoll_event events[8];
+        int n = epoll_wait(ep, events, 8, 1000);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            LOG("Error on epoll wait\n");
+            break;
+        }
 
-        if(n_read != -1 && n_read != 0){
-            err = handle_input();
-            if(err){
-                sleep(1);
+        if (n > 0 && (events[0].events & EPOLLIN)) {
+            LOG("Reading input fifo\n");
+            n_read = read(g_in_fd, &g_received_command, 4);
+
+            if(n_read != -1 && n_read != 0){
+                err = handle_input();
+                if(err){
+                    sleep(1);
+                }
             }
-        } else {
-            /* nothing to read: back off without logging to avoid spam */
-            sleep(1);
         }
 
         int actual_date = time(NULL);
@@ -174,14 +189,11 @@ int create_fifos(char* argv[])
 
 int open_in_fifos_non_blocking(char* argv[]) 
 {
-    g_in_fd = open(argv[2], O_RDONLY);
+    g_in_fd = open_fifo_rd(argv[2], 1);
     if(g_in_fd == -1){
         LOG("Could not open fifo %s\n", argv[2]);
         return 2;
     }
-
-    int flags = fcntl(g_in_fd, F_GETFL, 0);
-    fcntl(g_in_fd, F_SETFL, flags | O_NONBLOCK);
 
     return 0;
 }

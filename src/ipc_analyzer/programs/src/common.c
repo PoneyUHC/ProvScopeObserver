@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include <sys/epoll.h>
+
 
 int create_fifo(char *path)
 {
@@ -67,8 +69,41 @@ void LOG(const char *format, ...)
     strcat(timed_format, format);
     
     vprintf(timed_format, args);
+    fflush(stdout);
+    fflush(stderr);
 
     free(timed_format);
 
     va_end(args);
+}
+
+
+int open_fifo_rd(const char *path, int nonblock)
+{
+    int flags = O_RDONLY;
+    if(nonblock) flags |= O_NONBLOCK;
+    return open(path, flags);
+}
+
+
+int open_fifo_wr(const char *path)
+{
+    return open(path, O_WRONLY);
+}
+
+
+int make_epoll(const int *fifos, size_t n_fifos)
+{
+    int ep = epoll_create1(0);
+    for (int i=0; i<n_fifos; ++i) {
+        struct epoll_event ev;
+        ev.events = EPOLLIN;
+        ev.data.u32 = i;  // store index so we know which FIFO it was
+        if (epoll_ctl(ep, EPOLL_CTL_ADD, fifos[i], &ev) < 0) {
+            LOG("Error creating epoll for fifo %d", i);
+            return -1;
+        }
+    }
+
+    return ep;
 }

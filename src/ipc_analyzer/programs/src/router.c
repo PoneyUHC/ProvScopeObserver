@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/epoll.h>
+#include <errno.h>
 
 #include "common.h"
 
@@ -169,21 +171,30 @@ int consume_token(int in_fd, int out_fd)
 
 void loop() 
 {
+    int ep = make_epoll(g_in_fds, g_n_targets);
+    if (ep < 0) {
+        LOG("Issue when creating epoll\n");
+        return;
+    }
 
-    int n_errors = 0;
     while(1){
-        for(int i=0; i<g_n_targets; ++i){
-            n_errors += consume_token(g_in_fds[g_STATE_token_owner], g_out_fds[g_STATE_destinations[g_STATE_token_owner]]);
-            g_STATE_token_owner = (g_STATE_token_owner + 1) % g_n_targets;
+        struct epoll_event events[8];
+        int n = epoll_wait(ep, events, 8, -1);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            LOG("Error on epoll wait\n");
+            break;
         }
+        for(int i=0; i<n; ++i){
+            int idx = events[i].data.u32;
+            int fd  = g_in_fds[idx];
 
-        // Commented to make the router run max speed
-        if(n_errors == g_n_targets) {
-            LOG("Complete turn with errors, sleeping\n");
-            usleep(200000);
+            if (events[i].events & EPOLLIN) {
+                g_STATE_token_owner = idx;
+                int out_fd = g_out_fds[g_STATE_destinations[g_STATE_token_owner]];
+                consume_token(fd, out_fd);
+            }
         }
-
-        n_errors = 0;
     }
 }
 
