@@ -84,7 +84,7 @@ void handle_auth(int user_idx, const char* line)
         return;
     }
 
-    if (strncmp(resp, "AUTH_OK", 1) == 0) {
+    if (strncmp(resp, "AUTH_OK", 7) == 0) {
         respond(user_idx, "AUTH_OK");
         g_auth[user_idx] = 1;
     } else {
