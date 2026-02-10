@@ -39,7 +39,11 @@ def __add_fake_stdio_events():
 
 
 def sort_events():
+    for e in GlobalModel.events:
+        if isinstance(e.timestamp, str):
+            print(e) 
     GlobalModel.events.sort(key=lambda event: event.timestamp)
+
 
 
 def normalize_timestamps():

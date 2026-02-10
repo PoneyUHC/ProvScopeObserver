@@ -1,9 +1,12 @@
 
+
+[TEMPLATE_CONFIG]
+
+
 BEGIN
 {
     @next_write_id = 1;
 }
-
 
 tracepoint:syscalls:sys_enter_write
 / [TEMPLATE_PROCESS_NAMES] /
@@ -15,36 +18,47 @@ tracepoint:syscalls:sys_enter_write
     @fd_by_id[$id]    = args->fd;
     @count_by_id[$id] = args->count;
 
-    @size_by_id[$id]    = args->count > 128 ? 128 : args->count;
+    @size_by_id[$id]    = args->count > 100 ? 100 : args->count;
     @buf_ptr_by_id[$id] = args->buf;
 }
-
 
 tracepoint:syscalls:sys_exit_write
 / @write_event_id[pid] /
 {
     $id = @write_event_id[pid];
 
+    $ptr = @buf_ptr_by_id[$id];
+    $len = @size_by_id[$id];
+    if ($len > 100) { $len = 100; }
+
+    $i = 0;
+    unroll(100) {
+        if ($i < $len) {
+            @write_buf[$id, $i] = *(uint8*)($ptr + $i);
+        }
+        $i++;
+    }
+
     @write_events[$id] = (
-        nsecs, 
-        comm, 
-        pid, 
-        @fd_by_id[$id], 
-        @count_by_id[$id], 
-        buf(@buf_ptr_by_id[$id], @size_by_id[$id]),
+        nsecs,
+        comm,
+        pid,
+        @fd_by_id[$id],
+        @count_by_id[$id],
         args->ret
     );
 
     delete(@write_event_id[pid]);
-    delete(@fd_by_id[$id]);
-    delete(@buf_ptr_by_id[$id]);
-    delete(@count_by_id[$id]);
-    delete(@size_by_id[$id]);
 }
 
-
-END 
+END
 {
+    print(@write_events);
+    print(@write_buf);
+
+    clear(@write_events);
+    clear(@write_buf);
+
     clear(@write_event_id);
     clear(@fd_by_id);
     clear(@count_by_id);

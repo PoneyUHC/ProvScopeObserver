@@ -1,6 +1,6 @@
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, EnterReadEvent, ExitReadEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_to_IPCA
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, get_bpftrace_map
 
 
 N_INFOS_ENTER = 5
@@ -9,12 +9,39 @@ N_INFOS_EXIT = 7
 
 def parse_bpf_read_logs(filename: str) -> bool:
     
-    read_events = bpftrace_to_IPCA(filename, keys=["@enter_events", "@exit_events"], merge=False)
+    enter_events = get_bpftrace_map(filename, key="@enter_events")
+    if enter_events is None:
+        print(f"[PARSE_READ - ERROR] Could not find @enter_events map in {filename}")
+        return False
 
-    # since merge=False, we have a list with two elements being the list of enter and exit events
-    enter_events = read_events[0]
-    exit_events = read_events[1]
+    exit_events = get_bpftrace_map(filename, key="@exit_events")
+    if exit_events is None:
+        print(f"[PARSE_READ - ERROR] Could not find @exit_events map in {filename}")
+        return False
     
+    read_buf = get_bpftrace_map(filename, key="@read_buf")
+    if read_buf is None:
+        print(f"[PARSE_READ - ERROR] Could not find @read_buf map in {filename}")
+        return False
+
+    for id, value in exit_events.items():
+        if id not in enter_events:
+            print(f"[PARSE_READ - WARNING] Found exit event with id {id} but no corresponding enter event. Ignoring.")
+            continue
+
+        buffer = []
+        byte_idx = 0
+        while read_buf.get(f"{id},{byte_idx}") is not None:
+            buffer.append(read_buf[f"{id},{byte_idx}"])
+            byte_idx += 1
+
+        exit_events[id] = (*value, buffer)
+
+
+    enter_events = list(enter_events.values())
+    exit_events = list(exit_events.values())
+
+
     for i, event in enumerate(enter_events):
         parsing_result = add_enter_to_model(event)
         match parsing_result:
@@ -53,8 +80,8 @@ def add_exit_to_model(event: tuple) -> int:
         pid,
         fd,
         size,
-        content,
-        ret
+        ret,
+        content
     ) = event
 
     if any(name == ignore for ignore in IGNORE_PATTERN):

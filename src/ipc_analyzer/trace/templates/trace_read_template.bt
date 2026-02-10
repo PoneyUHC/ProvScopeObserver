@@ -2,6 +2,9 @@
 #include <fcntl.h>
 
 
+[TEMPLATE_CONFIG]
+
+
 BEGIN
 {
     @next_read_id = 1;
@@ -22,7 +25,7 @@ tracepoint:syscalls:sys_enter_read
     @count_by_id[$id] = args->count;
 
     // Buffer metadata (we’ll snapshot contents on exit)
-    @size_by_id[$id]    = args->count > 128 ? 128 : args->count;
+    @size_by_id[$id]    = args->count > 100 ? 100 : args->count;
     @buf_ptr_by_id[$id] = args->buf;
 
     @enter_events[$id] = (nsecs, comm, pid, args->fd, args->count);
@@ -34,13 +37,24 @@ tracepoint:syscalls:sys_exit_read
 {
     $id = @read_event_id[pid];
 
+    $ptr = @buf_ptr_by_id[$id];
+    $len = @size_by_id[$id];
+    if ($len > 100) { $len = 100; }
+
+    $i = 0;
+    unroll(100) {
+        if ($i < $len) {
+            @read_buf[$id, $i] = *(uint8*)($ptr + $i);
+        }   
+        $i++;
+    }
+
     @exit_events[$id] = (
         nsecs, 
         comm, 
         pid, 
         @fd_by_id[$id], 
-        @count_by_id[$id], 
-        buf(@buf_ptr_by_id[$id], @size_by_id[$id]),
+        @count_by_id[$id],
         args->ret
     );
 
@@ -50,6 +64,14 @@ tracepoint:syscalls:sys_exit_read
 
 END
 {
+    print(@enter_events);
+    print(@exit_events);
+    print(@read_buf);
+
+    clear(@enter_events);
+    clear(@exit_events);
+    clear(@read_buf);
+
     clear(@read_event_id);
     clear(@fd_by_id);
     clear(@count_by_id);

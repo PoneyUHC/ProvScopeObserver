@@ -1,6 +1,6 @@
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, ParsingResult, CloseEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_to_IPCA
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, get_bpftrace_map
 
 
 N_INFOS = 5
@@ -8,12 +8,12 @@ N_INFOS = 5
 
 def parse_bpf_close_logs(filename: str) -> bool:
 
-    close_events = bpftrace_to_IPCA(filename, keys=["@close_events"], merge=False)
-    if not close_events:
+    close_events = get_bpftrace_map(filename, key="@close_events")
+    if close_events is None:
+        print(f"[PARSE_CLOSE - ERROR] Could not find @close_events map in {filename}")
         return False
     
-    # since merge=False, we have a list with one element being the list of event
-    close_events = close_events[0] 
+    close_events = list(close_events.values())
     
     for i, event in enumerate(close_events):
         parsing_result = add_to_model(event)

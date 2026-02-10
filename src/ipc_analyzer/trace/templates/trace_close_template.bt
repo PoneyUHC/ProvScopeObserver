@@ -1,9 +1,6 @@
 #include <fcntl.h>
 
-struct params {
-    int fd;
-};
-
+[TEMPLATE_CONFIG]
 
 BEGIN
 {
@@ -38,6 +35,10 @@ tracepoint:syscalls:sys_exit_close
 
 END
 {
+    print(@close_events);
+
+    clear(@close_events);
+
     clear(@entered_close);
     clear(@fd);
     clear(@next_close_id);

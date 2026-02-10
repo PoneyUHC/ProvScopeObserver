@@ -3,6 +3,16 @@
 
 #define S_IFMT 00170000
 
+
+config = {
+	max_map_keys = 65535;
+	print_maps_on_exit = 0;
+	max_strlen = 150
+}
+
+
+
+
 BEGIN
 {
     // Use 1 instead of 0 because map failed access yields 0
@@ -60,6 +70,11 @@ tracepoint:syscalls:sys_exit_openat
 
 END
 {
+    print(@open_events);
+    print(@filename);
+
+    clear(@open_events);
+
     clear(@open_id);
     clear(@mode);
     clear(@access_mode);

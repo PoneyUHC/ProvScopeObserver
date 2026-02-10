@@ -16,8 +16,12 @@ def main(args: list[str]) -> None:
     
         with open(template_path, 'r') as fin:
             open_template = fin.read()
+
             processes_condition = "".join([f'comm == "{arg}" || ' for arg in args]) + "false"
             open_template = open_template.replace('[TEMPLATE_PROCESS_NAMES]', processes_condition)
+            
+            script_args = "config = {\n\tmax_map_keys = 65535;\n\tprint_maps_on_exit = 0;\n\tmax_strlen = 150\n}\n\n"
+            open_template = open_template.replace('[TEMPLATE_CONFIG]', script_args)
 
         with open(output_path, 'w') as fout:
             fout.write(open_template)

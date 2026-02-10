@@ -1,6 +1,6 @@
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, WriteEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_to_IPCA
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, get_bpftrace_map
 
 
 N_INFOS = 7
@@ -8,11 +8,30 @@ N_INFOS = 7
 
 def parse_bpf_write_logs(filename: str) -> bool:
     
-    write_events = bpftrace_to_IPCA(filename, keys=["@write_events"], merge=False)
-
-    # since merge=False, we have a list with one element being the list of event
-    write_events = write_events[0]
+    write_events = get_bpftrace_map(filename, key="@write_events")
+    if write_events is None:
+        print(f"[PARSE_WRITE - ERROR] Could not find @write_events map in {filename}")
+        return False
     
+    write_buf = get_bpftrace_map(filename, key="@write_buf")
+    if write_buf is None:
+        print(f"[PARSE_WRITE - ERROR] Could not find @write_buf map in {filename}")
+        return False
+
+    for id, value in write_events.items():
+
+        buffer = []
+        byte_idx = 0
+        while write_buf.get(f"{id},{byte_idx}") is not None:
+            buffer.append(write_buf[f"{id},{byte_idx}"])
+            byte_idx += 1
+
+        write_events[id] = (*value, buffer)
+
+
+    write_events = list(write_events.values())
+
+
     for i, event in enumerate(write_events):
         parsing_result = add_to_model(event)
         match parsing_result:
@@ -39,8 +58,8 @@ def add_to_model(event: tuple) -> int:
         pid,
         fd,
         size,
-        content,
-        ret
+        ret,
+        content
     ) = event
 
     if any(name == ignore for ignore in IGNORE_PATTERN):

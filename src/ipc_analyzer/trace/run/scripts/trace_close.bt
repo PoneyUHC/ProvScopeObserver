@@ -1,8 +1,11 @@
 #include <fcntl.h>
 
-struct params {
-    int fd;
-};
+config = {
+	max_map_keys = 65535;
+	print_maps_on_exit = 0;
+	max_strlen = 150
+}
+
 
 
 BEGIN
@@ -38,6 +41,10 @@ tracepoint:syscalls:sys_exit_close
 
 END
 {
+    print(@close_events);
+
+    clear(@close_events);
+
     clear(@entered_close);
     clear(@fd);
     clear(@next_close_id);

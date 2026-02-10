@@ -1,6 +1,6 @@
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, Resource, ParsingResult, OpenEvent, ResourceType
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_to_IPCA
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, get_bpftrace_map
 
 
 N_INFOS = 8
@@ -8,9 +8,28 @@ N_INFOS = 8
 
 def parse_bpf_openat_logs(filename: str) -> bool:
     
-    open_events = bpftrace_to_IPCA(filename, keys=["@open_events", "@filename"], merge=True)
-    if not open_events:
+    open_events = get_bpftrace_map(filename, key="@open_events")
+    if open_events is None:
+        print(f"[PARSE_OPEN - ERROR] Could not find @open_events map in {filename}")
         return False
+    
+    filenames = get_bpftrace_map(filename, key="@filename")
+    if filenames is None:
+        print(f"[PARSE_OPEN - ERROR] Could not find @filenames map in {filename}")
+        return False
+    
+
+    for id, value in open_events.items():
+
+        filename = filenames.get(id)
+        if filename is None:
+            print(f"[PARSE_OPEN - WARNING] Found open event with id {id} but no corresponding filename. Ignoring.")
+            continue
+
+        open_events[id] = (*value, filename)
+
+    open_events = list(open_events.values())
+
 
     for i, event in enumerate(open_events):
         parsing_result = add_to_model(event)
@@ -34,14 +53,14 @@ def add_to_model(event: tuple) -> int:
         return ParsingResult.ERR_COULD_NOT_PARSE
 
     (
-        filepath,
         timestamp,
         name,
         pid,
         fd,
         mode,
         access_mode,
-        resource_type
+        resource_type,
+        filepath
     ) = event
 
     if any(name == ignore for ignore in IGNORE_PATTERN):
