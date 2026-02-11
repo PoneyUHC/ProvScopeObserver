@@ -32,3 +32,7 @@ def get_bpftrace_map(filename: str, key: str) -> dict | None:
             return data[key]
         
     return None
+
+
+def bpftrace_buffer_to_bytestring(buffer: list[int]) -> str:
+    return "".join(chr(byte) for byte in buffer) 

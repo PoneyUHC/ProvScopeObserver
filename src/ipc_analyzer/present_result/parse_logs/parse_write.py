@@ -1,6 +1,6 @@
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, WriteEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, get_bpftrace_map
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_buffer_to_bytestring, get_bpftrace_map
 
 
 N_INFOS = 7
@@ -61,6 +61,8 @@ def add_to_model(event: tuple) -> int:
         ret,
         content
     ) = event
+
+    content = bpftrace_buffer_to_bytestring(content)
 
     if any(name == ignore for ignore in IGNORE_PATTERN):
         return ParsingResult.WARN_IGNORE_LINE
