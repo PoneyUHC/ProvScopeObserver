@@ -35,4 +35,4 @@ def get_bpftrace_map(filename: str, key: str) -> dict | None:
 
 
 def bpftrace_buffer_to_bytestring(buffer: list[int]) -> str:
-    return "".join(hex(byte)[2:] for byte in buffer) 
+    return "".join("{:02x}".format(byte) for byte in buffer) 
