@@ -29,12 +29,8 @@ def parse_bpf_read_logs(filename: str) -> bool:
             print(f"[PARSE_READ - WARNING] Found exit event with id {id} but no corresponding enter event. Ignoring.")
             continue
 
-        buffer = []
-        byte_idx = 0
-        while read_buf.get(f"{id},{byte_idx}") is not None:
-            buffer.append(read_buf[f"{id},{byte_idx}"])
-            byte_idx += 1
-
+        buffer = read_buf.get(f"{id}", [])
+        buffer = buffer[:value[5]] if buffer else []
         exit_events[id] = (*value, buffer)
 
 

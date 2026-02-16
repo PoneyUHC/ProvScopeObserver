@@ -19,13 +19,8 @@ def parse_bpf_write_logs(filename: str) -> bool:
         return False
 
     for id, value in write_events.items():
-
-        buffer = []
-        byte_idx = 0
-        while write_buf.get(f"{id},{byte_idx}") is not None:
-            buffer.append(write_buf[f"{id},{byte_idx}"])
-            byte_idx += 1
-
+        buffer = write_buf.get(f"{id}", [])
+        buffer = buffer[:value[5]] if buffer else []
         write_events[id] = (*value, buffer)
 
 

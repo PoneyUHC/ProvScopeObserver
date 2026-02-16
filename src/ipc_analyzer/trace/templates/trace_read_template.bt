@@ -39,15 +39,8 @@ tracepoint:syscalls:sys_exit_read
 
     $ptr = @buf_ptr_by_id[$id];
     $len = @size_by_id[$id];
-    if ($len > 100) { $len = 100; }
 
-    $i = 0;
-    unroll(100) {
-        if ($i < $len) {
-            @read_buf[$id, $i] = *(uint8*)($ptr + $i);
-        }   
-        $i++;
-    }
+    @read_buf[$id] = *(uint8[100]*)$ptr;
 
     @exit_events[$id] = (
         nsecs, 
@@ -59,6 +52,10 @@ tracepoint:syscalls:sys_exit_read
     );
 
     delete(@read_event_id[pid]);
+    delete(@fd_by_id[$id]);
+    delete(@count_by_id[$id]);
+    delete(@size_by_id[$id]);
+    delete(@buf_ptr_by_id[$id]);
 }
 
 
