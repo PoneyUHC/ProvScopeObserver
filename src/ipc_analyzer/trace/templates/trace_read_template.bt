@@ -14,8 +14,8 @@ BEGIN
 tracepoint:syscalls:sys_enter_read
 / [TEMPLATE_PROCESS_NAMES] /
 {
-    // Allocate a new event id
-    $id = @next_read_id++;
+    $seq = @next_write_id++;
+    $id = pid << 32 | $seq;
 
     // Remember which event belongs to this pid for the exit probe
     @read_event_id[pid] = $id;
@@ -25,7 +25,6 @@ tracepoint:syscalls:sys_enter_read
     @count_by_id[$id] = args->count;
 
     // Buffer metadata (we’ll snapshot contents on exit)
-    @size_by_id[$id]    = args->count > 100 ? 100 : args->count;
     @buf_ptr_by_id[$id] = args->buf;
 
     @enter_events[$id] = (nsecs, comm, pid, args->fd, args->count);
@@ -38,7 +37,7 @@ tracepoint:syscalls:sys_exit_read
     $id = @read_event_id[pid];
 
     $ptr = @buf_ptr_by_id[$id];
-    $len = @size_by_id[$id];
+    $len = args->ret > 100 ? 100 : args->ret;
 
     @read_buf[$id] = *(uint8[100]*)$ptr;
 
@@ -54,7 +53,6 @@ tracepoint:syscalls:sys_exit_read
     delete(@read_event_id[pid]);
     delete(@fd_by_id[$id]);
     delete(@count_by_id[$id]);
-    delete(@size_by_id[$id]);
     delete(@buf_ptr_by_id[$id]);
 }
 
@@ -72,7 +70,6 @@ END
     clear(@read_event_id);
     clear(@fd_by_id);
     clear(@count_by_id);
-    clear(@size_by_id);
     clear(@buf_ptr_by_id);
     clear(@next_read_id);
 }
