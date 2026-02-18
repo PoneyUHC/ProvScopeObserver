@@ -67,7 +67,7 @@ void send_message()
 
     ((int*)g_out_msg)[0] = total_size;
     ((int*)g_out_msg)[1] = selector;
-    snprintf(g_out_msg+8, 12, "Hello from %.1d", g_my_id);
+    snprintf(g_out_msg+8, 13, "Hello from %.1d", g_my_id);
     write(g_out_fd, g_out_msg, total_size);
 
     LOG("Sending message '%s'\n", g_out_msg+8);

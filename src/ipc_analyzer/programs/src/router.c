@@ -15,7 +15,7 @@
 #define PATH_MAX_LEN 256
 #define IN_BUFFER_MAX_SIZE 512
 #define OUT_BUFFER_MAX_SIZE 512
-#define LOG_BUFFER_SIZE 512
+#define LOG_BUFFER_SIZE 517
 
 static int* g_STATE_destinations;
 static int g_STATE_token_owner;
@@ -76,10 +76,8 @@ int API_send_message(int in_fd, int out_fd)
     strcpy(g_out_msg + 4, g_in_msg);
     write(out_fd, g_out_msg, g_in_msg_size + 4);
 
-    g_in_msg[g_in_msg_size] = '\0';
-
-    snprintf(g_log_buffer, 512, "%.1d,%s\n", g_STATE_destinations[g_STATE_token_owner], g_in_msg);
-    write(g_log_fd, g_log_buffer, 2 + g_in_msg_size + 1);
+    snprintf(g_log_buffer, LOG_BUFFER_SIZE, "%.1d,%.1d,%s\n", g_STATE_token_owner, g_STATE_destinations[g_STATE_token_owner], g_in_msg);
+    write(g_log_fd, g_log_buffer, 4 + g_in_msg_size + 1);
     
     return 0;
 }
