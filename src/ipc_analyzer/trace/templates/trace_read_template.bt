@@ -37,9 +37,9 @@ tracepoint:syscalls:sys_exit_read
     $id = @read_event_id[pid];
 
     $ptr = @buf_ptr_by_id[$id];
-    $len = args->ret > 100 ? 100 : args->ret;
+    $len = args->ret > 200 ? 200 : args->ret;
 
-    @read_buf[$id] = *(uint8[100]*)$ptr;
+    @read_buf[$id] = *(uint8[200]*)$ptr;
 
     @exit_events[$id] = (
         nsecs, 

@@ -86,7 +86,7 @@ void send_message_to_random()
 
     int used_id = g_my_id;
     if(g_petitfilou) {
-        if(g_talk_count % 10 == 0){
+        if(g_talk_count % 15 == 0){
             used_id = 9;
         }
     }
