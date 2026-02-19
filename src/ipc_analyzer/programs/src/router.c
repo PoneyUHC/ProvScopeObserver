@@ -18,7 +18,6 @@
 #define LOG_BUFFER_SIZE 517
 
 static int* g_STATE_destinations;
-static int g_STATE_token_owner;
 
 static int g_n_targets;
 static int *g_out_fds;
@@ -41,42 +40,59 @@ static char g_log_buffer[LOG_BUFFER_SIZE];
 
 int API_select_destination(int in_fd)
 {
-    if(g_in_packet_size < 12){
+    if(g_in_packet_size < 16){
         read(in_fd, g_in_msg, g_in_packet_size - 8);
         LOG("Message too short\n");
         return ERR_MSG_TOO_SHORT;
     }
 
-    int tmp_destination = 0;
-    int n_read = read(in_fd, &tmp_destination, 4);
+    int client_id = 0;
+    int n_read = read(in_fd, &client_id, 4);
     int err = usual_read_errors(n_read);
     if(err){
         return err;
     }
 
-    g_STATE_destinations[g_STATE_token_owner] = tmp_destination;
+    int tmp_destination = 0;
+    n_read = read(in_fd, &tmp_destination, 4);
+    err = usual_read_errors(n_read);
+    if(err){
+        return err;
+    }
 
-    LOG("Destination set to %d for client %d\n", g_STATE_destinations[g_STATE_token_owner], g_STATE_token_owner);
+    g_STATE_destinations[client_id] = tmp_destination;
+
+    LOG("Destination set to %d for client %d\n", tmp_destination, client_id);
     return 0;
 }
 
 
-int API_send_message(int in_fd, int out_fd)
+int API_send_message(int in_fd)
 {
-    int n_read = read(in_fd, g_in_msg, g_in_packet_size - 8);
+    int client_id = 0;
+    int n_read = read(in_fd, &client_id, 4);
     int err = usual_read_errors(n_read);
+    if(err){
+        LOG("Error reading client_id\n");
+        return err;
+    }
+
+    int out_fd = g_out_fds[g_STATE_destinations[client_id]];
+
+    n_read = read(in_fd, g_in_msg, g_in_packet_size - 12);
+    err = usual_read_errors(n_read);
     if(err){
         LOG("Packet size and message don't match\n");
         return err;
     }
 
-    LOG("Sending message '%s' to %d\n", g_in_msg, g_STATE_destinations[g_STATE_token_owner]);
+    LOG("Sending message '%s' to %d\n", g_in_msg, g_STATE_destinations[client_id]);
 
     ((int*)g_out_msg)[0] = g_in_msg_size;
     strcpy(g_out_msg + 4, g_in_msg);
     write(out_fd, g_out_msg, g_in_msg_size + 4);
 
-    snprintf(g_log_buffer, LOG_BUFFER_SIZE, "%.1d,%.1d,%s\n", g_STATE_token_owner, g_STATE_destinations[g_STATE_token_owner], g_in_msg);
+    snprintf(g_log_buffer, LOG_BUFFER_SIZE, "%.1d,%.1d,%s\n", client_id, g_STATE_destinations[client_id], g_in_msg);
     write(g_log_fd, g_log_buffer, 4 + g_in_msg_size + 1);
     
     return 0;
@@ -108,25 +124,25 @@ int parse_packet_size(int in_fd)
         return err;
     }
 
-    if(g_in_packet_size < 9){
+    if(g_in_packet_size < 13){
         // empty rest of ill formed message
         read(in_fd, g_in_msg, g_in_packet_size - 4);
         return ERR_MSG_TOO_SHORT;
     }
 
-    g_in_msg_size = g_in_packet_size - 8;
+    g_in_msg_size = g_in_packet_size - 12;
 
     return 0;
 }
 
 
-int dispatch_API_call(int function_id, int in_fd, int out_fd)
+int dispatch_API_call(int function_id, int in_fd)
 {
     switch(function_id){
         case 0:
             return API_select_destination(in_fd);
         case 1:
-            return API_send_message(in_fd, out_fd);
+            return API_send_message(in_fd);
         default:
             LOG("Wrong selector value\n");
             return 1;
@@ -134,7 +150,7 @@ int dispatch_API_call(int function_id, int in_fd, int out_fd)
 }
 
 
-int consume_token(int in_fd, int out_fd)
+int consume_token(int in_fd)
 {
     int err;
     int selector;
@@ -157,7 +173,7 @@ int consume_token(int in_fd, int out_fd)
         return 1;
     }
 
-    err = dispatch_API_call(selector, in_fd, out_fd);
+    err = dispatch_API_call(selector, in_fd);
     if(err){
         LOG("Error when dispatching call\n");
         return 1;
@@ -175,6 +191,8 @@ void loop()
         return;
     }
 
+    LOG("Entering main loop\n");
+
     while(1){
         struct epoll_event events[8];
         int n = epoll_wait(ep, events, 8, -1);
@@ -188,9 +206,8 @@ void loop()
             int fd  = g_in_fds[idx];
 
             if (events[i].events & EPOLLIN) {
-                g_STATE_token_owner = idx;
-                int out_fd = g_out_fds[g_STATE_destinations[g_STATE_token_owner]];
-                consume_token(fd, out_fd);
+                LOG("Event on port %d\n", idx);
+                consume_token(fd);
             }
         }
     }
@@ -294,8 +311,8 @@ int main(int argc, char *argv[])
     g_in_fds = (int*) malloc(g_n_targets * sizeof(int));
     g_out_fds = (int*) malloc(g_n_targets * sizeof(int));
     
-    g_STATE_destinations = malloc(g_n_targets * sizeof(int));
-    for(int i=0; i<g_n_targets; ++i) {
+    g_STATE_destinations = malloc(100 * sizeof(int));
+    for(int i=0; i<100; ++i) {
         // default is you speak to yourself
         g_STATE_destinations[i] = i;
     }

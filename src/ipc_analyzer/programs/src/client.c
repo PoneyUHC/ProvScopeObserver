@@ -17,8 +17,9 @@
 
 static int g_talk_delay_ms;
 static int g_my_id;
+static int g_petitfilou;
+static int g_talk_count;
 
-static int g_talkative;
 static int g_n_clients;
 
 static long g_next_talk_delay;
@@ -46,31 +47,33 @@ long get_time_ns()
 }
 
 
-void send_select(int target)
+void send_select(int target, int used_id)
 {
-    int total_size = 12;
+    int total_size = 16;
     int selector = 0;
 
     ((int*)g_out_msg)[0] = total_size;
     ((int*)g_out_msg)[1] = selector;
-    ((int*)g_out_msg)[2] = target;
+    ((int*)g_out_msg)[2] = used_id;
+    ((int*)g_out_msg)[3] = target;
 
     write(g_out_fd, g_out_msg, total_size);
     LOG("Selecting client %d\n", target);
 }
 
 
-void send_message()
+void send_message(int used_id)
 {
-    int total_size = 20;
+    int total_size = 24;
     int selector = 1;
 
     ((int*)g_out_msg)[0] = total_size;
     ((int*)g_out_msg)[1] = selector;
-    snprintf(g_out_msg+8, 13, "Hello from %.1d", g_my_id);
+    ((int*)g_out_msg)[2] = used_id;
+    snprintf(g_out_msg+12, 13, "Hello from %.1d", used_id);
     write(g_out_fd, g_out_msg, total_size);
 
-    LOG("Sending message '%s'\n", g_out_msg+8);
+    LOG("Sending message '%s'\n", g_out_msg+12);
 }
 
 
@@ -81,8 +84,16 @@ void send_message_to_random()
         target = rand() % g_n_clients;
     } while( target == g_my_id);
 
-    send_select(target);
-    send_message();
+    int used_id = g_my_id;
+    if(g_petitfilou) {
+        if(g_talk_count % 10 == 0){
+            used_id = 9;
+        }
+    }
+    send_select(target, used_id);
+    send_message(used_id);
+
+    ++g_talk_count;
 }
 
 
@@ -111,13 +122,11 @@ void loop()
     
         receive_message();
         
-        if(g_talkative) {
-            if(g_last_talk_time + g_next_talk_delay < get_time_ns()){
-                LOG("Sending message\n");
-                send_message_to_random();
-                g_last_talk_time = get_time_ns();
-                g_next_talk_delay = get_delay_ns();
-            }
+        if(g_last_talk_time + g_next_talk_delay < get_time_ns()){
+            LOG("Sending message\n");
+            send_message_to_random();
+            g_last_talk_time = get_time_ns();
+            g_next_talk_delay = get_delay_ns();
         }
 
         usleep(g_talk_delay_ms);
@@ -140,12 +149,15 @@ int main(int argc, char *argv[])
     g_in_fd = -1;
     g_out_fd = -1;
 
+    // 1 not to trigger the special behavior at start
+    g_talk_count = 1;
+
     if(argc != 7){
-        LOG("Usage: %s [talkative] [fifo_in] [fifo_out] [n_clients] [my_id] [talk_delay_ms]\n", argv[0]);
+        LOG("Usage: %s [petitfilou] [fifo_in] [fifo_out] [n_clients] [my_id] [talk_delay_ms]\n", argv[0]);
         return 1;
     }
 
-    g_talkative = atoi(argv[1]);
+    g_petitfilou = atoi(argv[1]);
 
     if(strlen(argv[2]) >= PATH_MAX_LEN){
         LOG("Fifo path too long : %s\n", argv[2]);

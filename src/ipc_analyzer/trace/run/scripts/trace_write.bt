@@ -17,14 +17,14 @@ BEGIN
 tracepoint:syscalls:sys_enter_write
 / comm == "router.bin" || comm == "client.bin" || comm == "log_collector.b" || false /
 {
-    $id = @next_write_id++;
+    $seq = @next_write_id++;
+    $id = pid << 32 | $seq;
 
     @write_event_id[pid] = $id;
 
     @fd_by_id[$id]    = args->fd;
     @count_by_id[$id] = args->count;
 
-    @size_by_id[$id]    = args->count > 100 ? 100 : args->count;
     @buf_ptr_by_id[$id] = args->buf;
 }
 
@@ -34,7 +34,7 @@ tracepoint:syscalls:sys_exit_write
     $id = @write_event_id[pid];
 
     $ptr = @buf_ptr_by_id[$id];
-    $len = @size_by_id[$id];
+    $len = args->ret > 100 ? 100 : args->ret;
 
     @write_buf[$id] = *(uint8[100]*)$ptr;
 
@@ -50,7 +50,6 @@ tracepoint:syscalls:sys_exit_write
     delete(@write_event_id[pid]);
     delete(@fd_by_id[$id]);
     delete(@count_by_id[$id]);
-    delete(@size_by_id[$id]);
     delete(@buf_ptr_by_id[$id]);
 }
 
@@ -65,7 +64,6 @@ END
     clear(@write_event_id);
     clear(@fd_by_id);
     clear(@count_by_id);
-    clear(@size_by_id);
     clear(@buf_ptr_by_id);
     clear(@next_write_id);
 }

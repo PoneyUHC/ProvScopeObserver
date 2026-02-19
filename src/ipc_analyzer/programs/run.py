@@ -31,7 +31,8 @@ def start(n_clients: int, talk_delay_microsecond: int):
 
     for i in range(n_clients):
         with open(f"run/client{i}.logs", 'w') as fout:
-            p = subprocess.Popen(['./client.bin', "1", router_to_clients[i], clients_to_router[i], str(n_clients), str(i), str(talk_delay_microsecond)], stdout=fout)
+            petitfilou = "1" if i == 0 else "0"
+            p = subprocess.Popen(['./client.bin', petitfilou, router_to_clients[i], clients_to_router[i], str(n_clients), str(i), str(talk_delay_microsecond)], stdout=fout)
             procs.append(p)
 
     with open('run/log_c.logs', 'w') as fout:

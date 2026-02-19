@@ -1,7 +1,7 @@
 
 CC = gcc
 RM = rm -f
-CFLAGS = -O0 -g -Wall -Wextra
+CFLAGS = -O0 -g -Wall -Wextra -Wpedantic
 
 SRC_DIR = src
 BUILD_DIR = build
