@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
     g_out_fd = -1;
 
     // 1 not to trigger the special behavior at start
-    g_talk_count = 1;
+    g_talk_count = 10;
 
     if(argc != 7){
         LOG("Usage: %s [petitfilou] [fifo_in] [fifo_out] [n_clients] [my_id] [talk_delay_ms]\n", argv[0]);

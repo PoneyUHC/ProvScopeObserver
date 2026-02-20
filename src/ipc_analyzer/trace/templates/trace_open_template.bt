@@ -17,7 +17,8 @@ BEGIN
 tracepoint:syscalls:sys_enter_openat
 / [TEMPLATE_PROCESS_NAMES] /
 {
-    $id = @next_open_id++;
+    $seq = @next_write_id++;
+    $id = pid << 32 | $seq;
     @open_id[pid] = $id;
 
     @mode[$id]        = args->mode;

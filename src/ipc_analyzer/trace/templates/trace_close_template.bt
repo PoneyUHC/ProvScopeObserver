@@ -10,15 +10,18 @@ BEGIN
 tracepoint:syscalls:sys_enter_close
 / [TEMPLATE_PROCESS_NAMES] /
 {
-    @entered_close[pid] = 1;
+    $seq = @next_write_id++;
+    $id = pid << 32 | $seq;
+
+    @close_id[pid] = $id;
     @fd[pid] = args->fd;
 }
 
 tracepoint:syscalls:sys_exit_close
-/@entered_close[pid] == 1/
+/@close_id[pid]/
 {
     // Allocate a unique event id (one entry per close())
-    $id = @next_close_id++;
+    $id = @close_id[pid];
     
     @close_events[$id] = (
         nsecs, 
@@ -29,7 +32,7 @@ tracepoint:syscalls:sys_exit_close
     );
 
     // Clean up per-pid temporary state
-    delete(@entered_close[pid]);
+    delete(@close_id[pid]);
     delete(@fd[pid]);
 }
 
@@ -39,7 +42,7 @@ END
 
     clear(@close_events);
 
-    clear(@entered_close);
+    clear(@close_id);
     clear(@fd);
     clear(@next_close_id);
 }
