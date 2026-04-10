@@ -1,59 +1,33 @@
-
 import os
-import time
+import sys
+from pathlib import Path
 
-import subprocess
-
-from ipc_analyzer.utils import EndProcessWatcher
-
-ERR_BAD_ARG = 1
+DEFAULT_TRACE_BACKEND = "bpftrace024"
 
 
-def start():
+def resolve_backend_script(script_name: str, backend: str) -> Path:
+    trace_root = Path(__file__).resolve().parent
+    backend_script = trace_root / backend / script_name
 
-    procs = []
+    if backend_script.exists():
+        return backend_script
 
-    script_dir = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(script_dir)
-    if os.path.exists('run/logs') is False:
-        os.makedirs('run/logs')
-
-    with open('run/logs/trace_open.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', '-f', 'json', 'run/scripts/trace_open.bt'], stdout=fout)
-        procs.append(p)
-
-    with open('run/logs/trace_close.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', '-f', 'json', 'run/scripts/trace_close.bt'], stdout=fout)
-        procs.append(p)
-
-    with open('run/logs/trace_write.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', '-f', 'json', 'run/scripts/trace_write.bt'], stdout=fout)
-        procs.append(p)
-
-    with open('run/logs/trace_read.logs', 'w') as fout:
-        p = subprocess.Popen(['sudo', 'bpftrace', '-f', 'json', 'run/scripts/trace_read.bt'], stdout=fout)
-        procs.append(p)
-
-    return procs
+    available_backends = sorted(
+        path.name
+        for path in trace_root.iterdir()
+        if path.is_dir() and (path / script_name).exists()
+    )
+    available = ", ".join(available_backends) or DEFAULT_TRACE_BACKEND
+    raise SystemExit(
+        f"Unknown trace backend '{backend}'. Available backends: {available}"
+    )
 
 
-
-def clean(procs: list[subprocess.Popen]):
-
-    for p in procs:
-        subprocess.run(['sudo', 'kill', '-INT', f"{p.pid}"])
-
-
-def main():
-
-    watcher = EndProcessWatcher()
-
-    procs = start()
-    
-    while not watcher.kill_now:
-        time.sleep(0.2)
-
-    clean(procs)
+def main() -> None:
+    backend = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_TRACE_BACKEND
+    backend_script = resolve_backend_script(Path(__file__).name, backend)
+    os.execv(sys.executable, [sys.executable, str(backend_script), *sys.argv[2:]])
 
 
-main()
+if __name__ == "__main__":
+    main()

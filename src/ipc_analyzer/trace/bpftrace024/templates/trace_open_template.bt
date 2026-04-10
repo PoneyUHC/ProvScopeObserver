@@ -20,9 +20,9 @@ tracepoint:syscalls:sys_enter_openat
     $id = @next_open_id++;
     @open_id[pid] = $id;
 
-    @mode[$id]        = args->mode;
-    @filename[$id]    = str(args->filename);
-    @access_mode[$id] = args->flags & O_ACCMODE;
+    @mode[$id]        = args.mode;
+    @filename[$id]    = str(args.filename);
+    @access_mode[$id] = args.flags & O_ACCMODE;
 
     @vfs_open[pid] = $id;
 }
@@ -50,7 +50,7 @@ tracepoint:syscalls:sys_exit_openat
         nsecs,
         comm,
         pid, 
-        args->ret,
+        args.ret,
         @mode[$id], 
         @access_mode[$id], 
         @type[$id]
@@ -75,4 +75,3 @@ END
     clear(@type);
     clear(@next_open_id);
 }
-

@@ -4,13 +4,7 @@
 #define S_IFMT 00170000
 
 
-config = {
-	max_map_keys = 65535;
-	print_maps_on_exit = 0;
-	max_strlen = 150
-}
-
-
+[TEMPLATE_CONFIG]
 
 
 BEGIN
@@ -21,14 +15,14 @@ BEGIN
 }
 
 tracepoint:syscalls:sys_enter_openat
-/ comm == "router.bin" || comm == "client.bin" || comm == "log_collector.b" || false /
+/ [TEMPLATE_PROCESS_NAMES] /
 {
     $id = @next_open_id++;
     @open_id[pid] = $id;
 
-    @mode[$id]        = args->mode;
-    @filename[$id]    = str(args->filename);
-    @access_mode[$id] = args->flags & O_ACCMODE;
+    @mode[$id]        = args.mode;
+    @filename[$id]    = str(args.filename);
+    @access_mode[$id] = args.flags & O_ACCMODE;
 
     @vfs_open[pid] = $id;
 }
@@ -56,7 +50,7 @@ tracepoint:syscalls:sys_exit_openat
         nsecs,
         comm,
         pid, 
-        args->ret,
+        args.ret,
         @mode[$id], 
         @access_mode[$id], 
         @type[$id]
@@ -81,4 +75,3 @@ END
     clear(@type);
     clear(@next_open_id);
 }
-

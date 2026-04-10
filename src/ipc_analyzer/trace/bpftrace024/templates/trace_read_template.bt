@@ -14,20 +14,20 @@ BEGIN
 tracepoint:syscalls:sys_enter_read
 / [TEMPLATE_PROCESS_NAMES] /
 {
-    $seq = @next_write_id++;
+    $seq = @next_read_id++;
     $id = pid << 32 | $seq;
 
     // Remember which event belongs to this pid for the exit probe
     @read_event_id[pid] = $id;
 
     // "enter" side info (per event)
-    @fd_by_id[$id]    = args->fd;
-    @count_by_id[$id] = args->count;
+    @fd_by_id[$id]    = args.fd;
+    @count_by_id[$id] = args.count;
 
     // Buffer metadata (we’ll snapshot contents on exit)
-    @buf_ptr_by_id[$id] = args->buf;
+    @buf_ptr_by_id[$id] = args.buf;
 
-    @enter_events[$id] = (nsecs, comm, pid, args->fd, args->count);
+    @enter_events[$id] = (nsecs, comm, pid, args.fd, args.count);
 }
 
 
@@ -37,8 +37,6 @@ tracepoint:syscalls:sys_exit_read
     $id = @read_event_id[pid];
 
     $ptr = @buf_ptr_by_id[$id];
-    $len = args->ret > 200 ? 200 : args->ret;
-
     @read_buf[$id] = *(uint8[200]*)$ptr;
 
     @exit_events[$id] = (
@@ -47,7 +45,7 @@ tracepoint:syscalls:sys_exit_read
         pid, 
         @fd_by_id[$id], 
         @count_by_id[$id],
-        args->ret
+        args.ret
     );
 
     delete(@read_event_id[pid]);

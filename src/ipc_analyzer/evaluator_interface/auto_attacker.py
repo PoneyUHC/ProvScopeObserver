@@ -282,9 +282,12 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
     if not isinstance(system_processes, list):
         print("Warning: system_processes must be a list; defaulting to empty list")
         system_processes = []
+
+    monitor_version = json_actions.get("monitor_version", "bpftrace024")
     
     print(f"Found {len(test_cases)} test_cases in {evaluator_actions_file}")
     print(f"System executable: {system_executable}")
+    print(f"Monitor version: {monitor_version}")
     if system_executable_args:
         print(f"System executable args: {system_executable_args}")
     # Determine system name for output reports. If not provided explicitly, derive from executable name
@@ -316,7 +319,7 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
             
             # Call run.bash with: 1 {report_path} 3 {temp_script} {system_executable}
             # Format: run.bash [n_exec] [report_filename] [wait_time] [evaluator_actions_script] [system_executable] [system_executable_args...]
-            cmd = ["bash", run_bash_path, "1", report_path, "10", temp_script_path, ",".join(system_processes), system_executable]
+            cmd = ["bash", run_bash_path, "1", report_path, "10", temp_script_path, ",".join(system_processes), monitor_version, system_executable]
             cmd.extend(system_executable_args)
             print(f"Executing: {' '.join(cmd)}")
             
@@ -343,7 +346,7 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
                 
                 # Call run.bash with: 1 {report_path} 3 {temp_script} {system_executable}
                 # Format: run.bash [n_exec] [report_filename] [wait_time] [evaluator_actions_script] [system_executable] [system_executable_args...]
-                cmd = ["bash", run_bash_path, "1", report_path, "3", temp_script_path, ",".join(system_processes), system_executable]
+                cmd = ["bash", run_bash_path, "1", report_path, "3", temp_script_path, ",".join(system_processes), monitor_version, system_executable]
                 cmd.extend(system_executable_args)
                 print(f"Executing: {' '.join(cmd)}")
                 

@@ -4,9 +4,9 @@
 SCRIPT_DIR="$(dirname "$0")"
 source ${SCRIPT_DIR}/common.bash
 
-if [ $# -lt 5 ]
+if [ $# -lt 6 ]
     then
-        echo "Usage : $0 [report_filename] [wait_time] [evaluator_actions_script] [processes] [system_executable] [system_executable_args...]"
+        echo "Usage : $0 [report_filename] [wait_time] [evaluator_actions_script] [processes] [monitor_version] [system_executable] [system_executable_args...]"
         exit 1
 fi
 
@@ -14,8 +14,12 @@ REPORT_FILENAME=$1
 WAIT_TIME=$2
 EVALUATOR_ACTIONS_SCRIPT=$3
 PROCESSES=$4
-SYSTEM_EXECUTABLE=$5
-SYSTEM_EXECUTABLE_ARGS=${@:6} # system executable arguments
+MONITOR_VERSION=$5
+SYSTEM_EXECUTABLE=$6
+SYSTEM_EXECUTABLE_ARGS=${@:7} # system executable arguments
+
+BPF_RUN_DIR=${BPF_SCRIPTS_DIR}/run/${MONITOR_VERSION}
+BPF_LOGS_DIR=${BPF_RUN_DIR}/logs
 
 [ ! -d $BPF_LOGS_DIR ] && mkdir -p $BPF_LOGS_DIR
 
@@ -32,11 +36,11 @@ cleanup() {
 
 trap 'cleanup' EXIT
 
-python3 ${BPF_SCRIPTS_DIR}/instantiate_templates.py ${PROCESSES}
+python3 ${BPF_SCRIPTS_DIR}/instantiate_templates.py ${MONITOR_VERSION} ${PROCESSES}
 
 sudo true
 
-python3 ${BPF_SCRIPTS_DIR}/trace.py ${ARGS} &
+python3 ${BPF_SCRIPTS_DIR}/trace.py ${MONITOR_VERSION} &
 
 sleep 3
 
@@ -70,4 +74,4 @@ sleep 2
 
 # create report from logs
 echo "Exporting results to file ${REPORT_FILENAME}" 
-python3 ${SRC_DIR}/present_result/export_result.py ${REPORT_FILENAME}
+python3 ${SRC_DIR}/present_result/export_result.py ${MONITOR_VERSION} ${REPORT_FILENAME}

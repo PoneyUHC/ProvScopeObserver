@@ -11,7 +11,7 @@ tracepoint:syscalls:sys_enter_close
 / [TEMPLATE_PROCESS_NAMES] /
 {
     @entered_close[pid] = 1;
-    @fd[pid] = args->fd;
+    @fd[pid] = args.fd;
 }
 
 tracepoint:syscalls:sys_exit_close
@@ -25,7 +25,7 @@ tracepoint:syscalls:sys_exit_close
         comm, 
         pid, 
         @fd[pid], 
-        args->ret
+        args.ret
     );
 
     // Clean up per-pid temporary state

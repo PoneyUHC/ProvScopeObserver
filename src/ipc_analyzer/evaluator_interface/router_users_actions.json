@@ -2,6 +2,7 @@
     "system_name": "router_users_programs",
     "system_executable": "router_users_programs/run.py",
     "system_executable_args": [],
+    "monitor_version": "bpftrace024",
     "system_processes": [
         "router",
         "auth",

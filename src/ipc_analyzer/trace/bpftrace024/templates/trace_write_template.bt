@@ -16,10 +16,10 @@ tracepoint:syscalls:sys_enter_write
 
     @write_event_id[pid] = $id;
 
-    @fd_by_id[$id]    = args->fd;
-    @count_by_id[$id] = args->count;
+    @fd_by_id[$id]    = args.fd;
+    @count_by_id[$id] = args.count;
 
-    @buf_ptr_by_id[$id] = args->buf;
+    @buf_ptr_by_id[$id] = args.buf;
 }
 
 tracepoint:syscalls:sys_exit_write
@@ -28,8 +28,6 @@ tracepoint:syscalls:sys_exit_write
     $id = @write_event_id[pid];
 
     $ptr = @buf_ptr_by_id[$id];
-    $len = args->ret > 200 ? 200 : args->ret;
-
     @write_buf[$id] = *(uint8[200]*)$ptr;
 
     @write_events[$id] = (
@@ -38,7 +36,7 @@ tracepoint:syscalls:sys_exit_write
         pid,
         @fd_by_id[$id],
         @count_by_id[$id],
-        args->ret
+        args.ret
     );
 
     delete(@write_event_id[pid]);

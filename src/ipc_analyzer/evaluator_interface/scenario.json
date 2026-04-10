@@ -3,6 +3,7 @@
     "system_name": "programs",
     "system_executable": "programs/run.py",
     "system_executable_args": ["3", "200000"],
+    "monitor_version": "bpftrace024",
     "system_processes": [
         "router.bin",
         "client.bin",

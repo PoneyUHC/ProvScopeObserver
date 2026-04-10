@@ -1,12 +1,6 @@
 #include <fcntl.h>
 
-config = {
-	max_map_keys = 65535;
-	print_maps_on_exit = 0;
-	max_strlen = 150
-}
-
-
+[TEMPLATE_CONFIG]
 
 BEGIN
 {
@@ -14,10 +8,10 @@ BEGIN
 }
 
 tracepoint:syscalls:sys_enter_close
-/ comm == "router.bin" || comm == "client.bin" || comm == "log_collector.b" || false /
+/ [TEMPLATE_PROCESS_NAMES] /
 {
     @entered_close[pid] = 1;
-    @fd[pid] = args->fd;
+    @fd[pid] = args.fd;
 }
 
 tracepoint:syscalls:sys_exit_close
@@ -31,7 +25,7 @@ tracepoint:syscalls:sys_exit_close
         comm, 
         pid, 
         @fd[pid], 
-        args->ret
+        args.ret
     );
 
     // Clean up per-pid temporary state

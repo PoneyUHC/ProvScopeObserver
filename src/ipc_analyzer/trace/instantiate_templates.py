@@ -1,33 +1,39 @@
-
-
 import os
 import sys
+from pathlib import Path
+
+DEFAULT_TRACE_BACKEND = "bpftrace024"
 
 
-def main(args: list[str]) -> None:
+def resolve_backend_script(script_name: str, backend: str) -> Path:
+    trace_root = Path(__file__).resolve().parent
+    backend_script = trace_root / backend / script_name
 
-    for file in os.listdir('trace/templates'):
-        if not file.endswith('_template.bt'):
-            continue
+    if backend_script.exists():
+        return backend_script
 
-        template_path = os.path.join('trace', 'templates', file)
-        output_path = os.path.join('trace', 'run', 'scripts', file.replace('_template', ''))
-        
-    
-        with open(template_path, 'r') as fin:
-            open_template = fin.read()
+    available_backends = sorted(
+        path.name
+        for path in trace_root.iterdir()
+        if path.is_dir() and (path / script_name).exists()
+    )
+    available = ", ".join(available_backends) or DEFAULT_TRACE_BACKEND
+    raise SystemExit(
+        f"Unknown trace backend '{backend}'. Available backends: {available}"
+    )
 
-            processes_condition = "".join([f'comm == "{arg}" || ' for arg in args]) + "false"
-            open_template = open_template.replace('[TEMPLATE_PROCESS_NAMES]', processes_condition)
-            
-            script_args = "config = {\n\tmax_map_keys = 65535;\n\tprint_maps_on_exit = 0;\n\tmax_strlen = 150\n}\n\n"
-            open_template = open_template.replace('[TEMPLATE_CONFIG]', script_args)
 
-        with open(output_path, 'w') as fout:
-            fout.write(open_template)
+def main() -> None:
+    if len(sys.argv) > 2:
+        backend = sys.argv[1]
+        forwarded_args = sys.argv[2:]
+    else:
+        backend = DEFAULT_TRACE_BACKEND
+        forwarded_args = sys.argv[1:]
+
+    backend_script = resolve_backend_script(Path(__file__).name, backend)
+    os.execv(sys.executable, [sys.executable, str(backend_script), *forwarded_args])
 
 
 if __name__ == "__main__":
-
-    args = sys.argv[1].split(',')
-    main(args)
+    main()

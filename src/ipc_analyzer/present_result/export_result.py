@@ -1,5 +1,4 @@
 import sys
-import os
 
 from ipc_analyzer.present_result.parse_logs.parse_openat import parse_bpf_openat_logs
 from ipc_analyzer.present_result.parse_logs.parse_close import parse_bpf_close_logs
@@ -14,6 +13,12 @@ import json
 from json import JSONEncoder
 
 from pathlib import Path
+
+DEFAULT_TRACE_BACKEND = "bpftrace024"
+
+
+def get_trace_logs_dir(root_dir: str, backend: str) -> Path:
+    return Path(root_dir) / "trace" / "run" / backend / "logs"
 
 
 def serialize_lookup(object: int | str | Entity):
@@ -67,18 +72,24 @@ class IPCAModelEncoder(JSONEncoder):
 
 def main():
     
+    monitor_version = DEFAULT_TRACE_BACKEND
     out_filename = 'report.json'
-    if len(sys.argv) < 2:
-        print(f"No specified export filename, defaulting to {out_filename}")
-    else:
+    if len(sys.argv) >= 3:
+        monitor_version = sys.argv[1]
+        out_filename = sys.argv[2]
+    elif len(sys.argv) == 2:
         out_filename = sys.argv[1]
+    else:
+        print(f"No specified export filename, defaulting to {out_filename}")
 
-    root_dir = os.path.dirname(os.path.dirname(__file__))
+    root_dir = Path(__file__).resolve().parent.parent
     
-    parse_bpf_openat_logs(f"{root_dir}/trace/run/logs/trace_open.logs")
-    parse_bpf_close_logs(f"{root_dir}/trace/run/logs/trace_close.logs")
-    parse_bpf_read_logs(f"{root_dir}/trace/run/logs/trace_read.logs")
-    parse_bpf_write_logs(f"{root_dir}/trace/run/logs/trace_write.logs")
+    logs_dir = get_trace_logs_dir(str(root_dir), monitor_version)
+
+    parse_bpf_openat_logs(str(logs_dir / "trace_open.logs"))
+    parse_bpf_close_logs(str(logs_dir / "trace_close.logs"))
+    parse_bpf_read_logs(str(logs_dir / "trace_read.logs"))
+    parse_bpf_write_logs(str(logs_dir / "trace_write.logs"))
 
     GlobalModel.events = list(filter(lambda e: e.event_type != "EnterReadEvent", GlobalModel.events))
 

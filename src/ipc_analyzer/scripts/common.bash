@@ -13,4 +13,3 @@ RESULTS_DIR=${SRC_DIR}/present_result
 BINARIES_DIR=${PROGRAMS_DIR}/build/exec
 
 BPF_SCRIPTS_DIR=${SRC_DIR}/trace
-BPF_LOGS_DIR=${BPF_SCRIPTS_DIR}/run/logs
