@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 from ipc_analyzer.present_result.parse_logs.parse_openat import parse_bpf_openat_logs
 from ipc_analyzer.present_result.parse_logs.parse_close import parse_bpf_close_logs
@@ -75,6 +76,8 @@ def main():
 
     root_dir = os.path.dirname(os.path.dirname(__file__))
     
+    start = time.time()
+
     parse_bpf_openat_logs(f"{root_dir}/trace/run/logs/trace_open.logs")
     parse_bpf_close_logs(f"{root_dir}/trace/run/logs/trace_close.logs")
     parse_bpf_read_logs(f"{root_dir}/trace/run/logs/trace_read.logs")
@@ -88,12 +91,18 @@ def main():
     normalize_events()
     add_color_information()
 
+    normalization_time = time.time() - start
+    print(f"Normalization completed in {normalization_time:.2f} seconds")
+
     output_path = f"{root_dir}/present_result/output/{out_filename}"
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w") as f:
         f.write(json.dumps(GlobalModel, indent=4, cls=IPCAModelEncoder))
     
+    export_time = time.time() - start
+    print(f"Export completed in {export_time:.2f} seconds")
+
     
 if __name__ == '__main__':
     main()

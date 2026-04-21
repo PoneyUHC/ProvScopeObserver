@@ -24,7 +24,8 @@ tracepoint:syscalls:sys_exit_close
 /@entered_close[pid] == 1/
 {
     // Allocate a unique event id (one entry per close())
-    $id = @next_close_id++;
+    $seq = @next_write_id++;
+    $id = pid << 32 | $seq;
     
     @close_events[$id] = (
         nsecs, 

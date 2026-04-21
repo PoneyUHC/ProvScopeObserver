@@ -303,8 +303,8 @@ int main(int argc, char *argv[])
     }
 
     g_n_targets = atoi(argv[1]);
-    if(g_n_targets < 2 || g_n_targets > 6){
-        LOG("Number of targets must be at least 2, at most 5\n");
+    if(g_n_targets < 2){
+        LOG("Number of targets must be at least 2\n");
         return 1;
     }
 

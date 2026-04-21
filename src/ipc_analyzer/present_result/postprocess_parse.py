@@ -79,7 +79,6 @@ def __normalize_open(process_resource_map: dict[tuple[str, int], Resource], even
     resource_key = (process_uuid, event.fd)
     process_resource_map[resource_key] = event.file
 
-    event.other_entities.append(event.file)
     event.source_entities.append(event.file)
 
     # TODO: determine in the monitoring if the file did already exist or not
@@ -91,7 +90,6 @@ def __normalize_close(process_resource_map: dict[tuple[str, int], Resource], eve
     process_uuid = event.process.get_uuid()
     resource_key = (process_uuid, event.fd)
  
-    event.other_entities.append(process_resource_map[resource_key])
     event.target_entities.append(process_resource_map[resource_key])
 
     if resource_key in process_resource_map:
@@ -109,7 +107,6 @@ def __normalize_read(process_resource_map: dict[tuple[str, int], Resource], even
         return
     
     resource = process_resource_map[resource_key]
-    event.other_entities.append(resource)
 
     event.source_entities.append(resource)
 
@@ -126,7 +123,6 @@ def __normalize_write(process_resource_map: dict[tuple[str, int], Resource], eve
         return
     
     resource = process_resource_map[resource_key]
-    event.other_entities.append(resource)
     event.source_entities.append(resource)
     event.target_entities.append(resource)
 

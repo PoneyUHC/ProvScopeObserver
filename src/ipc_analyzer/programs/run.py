@@ -55,8 +55,8 @@ def main():
         sys.exit(ERR_BAD_ARG)
 
     n_clients = int(sys.argv[1])
-    if n_clients < 1 or n_clients > 5:
-        print("Number of targets must be in at least 1, at most 5")
+    if n_clients < 1:
+        print("Number of targets must be in at least 1")
         sys.exit(ERR_BAD_ARG)
 
     talk_delay_microsecond = int(sys.argv[2])
