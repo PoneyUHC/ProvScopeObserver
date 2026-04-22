@@ -1,3 +1,6 @@
+<img width="640" height="200" alt="provscope-observer-logo" src="https://github.com/user-attachments/assets/3e09dc9a-f9cb-4d0c-820b-dd976fccdc4e" />
+
+
 # ProvScope Observer
 
 ProvScope Observer is a GNU/Linux IPC tracing and analysis prototype. It runs
