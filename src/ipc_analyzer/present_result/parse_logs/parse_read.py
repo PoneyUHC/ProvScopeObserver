@@ -1,6 +1,6 @@
 
 from ipc_analyzer.present_result.ipca_globals import GlobalModel, ParsingResult, Process, EnterReadEvent, ExitReadEvent
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_buffer_to_bytestring, get_bpftrace_map
+from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, bpftrace_bufstr_to_bytestring, get_bpftrace_map
 
 
 N_INFOS_ENTER = 5
@@ -29,8 +29,7 @@ def parse_bpf_read_logs(filename: str) -> bool:
             print(f"[PARSE_READ - WARNING] Found exit event with id {id} but no corresponding enter event. Ignoring.")
             continue
 
-        buffer = read_buf.get(f"{id}", [])
-        buffer = buffer[:value[5]] if buffer else []
+        buffer = read_buf.get(f"{id}", "")
         exit_events[id] = (*value, buffer)
 
 
@@ -80,7 +79,7 @@ def add_exit_to_model(event: tuple) -> int:
         content
     ) = event
 
-    content = bpftrace_buffer_to_bytestring(content)
+    content = bpftrace_bufstr_to_bytestring(content)
 
     if any(name == ignore for ignore in IGNORE_PATTERN):
         return ParsingResult.WARN_IGNORE_LINE

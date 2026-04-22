@@ -20,7 +20,7 @@ def main(args: list[str]) -> None:
             processes_condition = "".join([f'comm == "{arg}" || ' for arg in args]) + "false"
             open_template = open_template.replace('[TEMPLATE_PROCESS_NAMES]', processes_condition)
             
-            script_args = "config = {\n\tmax_map_keys = 65535;\n\tprint_maps_on_exit = 0;\n\tmax_strlen = 150\n}\n\n"
+            script_args = "config = {\n\tmax_map_keys = 65535;\n\tprint_maps_on_exit = 0;\n\tmax_strlen = 2048\n}\n\n"
             open_template = open_template.replace('[TEMPLATE_CONFIG]', script_args)
 
         with open(output_path, 'w') as fout:

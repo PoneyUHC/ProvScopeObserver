@@ -28,9 +28,9 @@ tracepoint:syscalls:sys_exit_write
     $id = @write_event_id[pid];
 
     $ptr = @buf_ptr_by_id[$id];
-    $len = args->ret > 300 ? 300 : args->ret;
+    $len = args->ret < 0 ? 0 : args->ret;
 
-    @write_buf[$id] = *(uint8[300]*)$ptr;
+    @write_buf[$id] = buf($ptr, $len);
 
     @write_events[$id] = (
         nsecs,
