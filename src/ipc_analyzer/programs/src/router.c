@@ -92,8 +92,8 @@ int API_send_message(int in_fd)
     strcpy(g_out_msg + 4, g_in_msg);
     write(out_fd, g_out_msg, g_in_msg_size + 4);
 
-    snprintf(g_log_buffer, LOG_BUFFER_SIZE, "%.1d,%.1d,%s\n", client_id, g_STATE_destinations[client_id], g_in_msg);
-    write(g_log_fd, g_log_buffer, 4 + g_in_msg_size + 1);
+    snprintf(g_log_buffer, LOG_BUFFER_SIZE, "%02d,%02d,%s\n", client_id, g_STATE_destinations[client_id], g_in_msg);
+    write(g_log_fd, g_log_buffer, 6 + g_in_msg_size);
     
     return 0;
 }

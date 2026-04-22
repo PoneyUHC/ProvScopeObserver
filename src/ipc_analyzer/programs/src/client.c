@@ -64,13 +64,13 @@ void send_select(int target, int used_id)
 
 void send_message(int used_id)
 {
-    int total_size = 24;
+    int total_size = 26;
     int selector = 1;
 
     ((int*)g_out_msg)[0] = total_size;
     ((int*)g_out_msg)[1] = selector;
     ((int*)g_out_msg)[2] = used_id;
-    snprintf(g_out_msg+12, 13, "Hello from %.1d", used_id);
+    snprintf(g_out_msg+12, 14, "Hello from %02d", used_id);
     write(g_out_fd, g_out_msg, total_size);
 
     LOG("Sending message '%s'\n", g_out_msg+12);
@@ -87,7 +87,7 @@ void send_message_to_random()
     int used_id = g_my_id;
     if(g_petitfilou) {
         if(g_talk_count % 15 == 0){
-            used_id = 9;
+            used_id = 99;
         }
     }
     send_select(target, used_id);
@@ -107,7 +107,7 @@ void receive_message()
     }
     
     int read_size = read(g_in_fd, g_in_msg, g_in_msg_size);
-    if( read_size == msg_size){
+    if( read_size != g_in_msg_size){
         LOG("Error: cannot read enough bytes\n");
         return;
     }

@@ -14,7 +14,7 @@
 
 
 #define PATH_MAX_LEN 256
-#define PARSE_BUFFER_SIZE 1024
+#define PARSE_BUFFER_SIZE 4096
 
 static int g_in_fd;
 
@@ -27,10 +27,10 @@ static int g_received_command;
 static char g_parse_buffer[PARSE_BUFFER_SIZE];
 static int g_parse_buffer_size = 0;
 
-static int read_timer = 1;
-static int write_timer = 1;
-static int last_read_date = 0;
-static int last_write_date = 0;
+static int read_timer_ms = 50;
+static int write_timer_ms = 200;
+static long long last_read_ms = 0;
+static long long last_write_ms = 0;
 
 
 int read_and_parse(int fd)
@@ -40,7 +40,7 @@ int read_and_parse(int fd)
     int new_content = 0;
     while(1){
         n_read = read(fd, &c, 1);
-        if(!n_read ){
+        if(n_read <= 0){
             break;
         }
 
@@ -84,6 +84,9 @@ int API_read_and_parse(){
 
 void write_to_goal()
 {
+    if(g_parse_buffer_size == 0){
+        return;
+    }
     LOG("Writing '%s' to goal\n", g_parse_buffer);
     write(g_goal_fd, g_parse_buffer, g_parse_buffer_size);
 
@@ -138,15 +141,18 @@ void loop()
             }
         }
 
-        int actual_date = time(NULL);
-        if(actual_date - last_read_date > read_timer){
-            last_read_date = actual_date;
+        struct timespec ts;
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        long long now_ms = ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
+
+        if(now_ms - last_read_ms > read_timer_ms){
+            last_read_ms = now_ms;
             LOG("Read timer expired, reading and parsing log file\n");
             API_read_and_parse();
         }
 
-        if(actual_date - last_write_date > write_timer){
-            last_write_date = actual_date;
+        if(now_ms - last_write_ms > write_timer_ms){
+            last_write_ms = now_ms;
             LOG("Write timer expired, writing parsed data to goal\n");
             write_to_goal();
         }
@@ -218,7 +224,10 @@ int main(int argc, char *argv[])
     g_in_fd = -1;
     g_goal_fd = -1;
     g_log_fd = -1;
-    last_read_date = time(NULL);
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    last_read_ms = ts.tv_sec * 1000LL + ts.tv_nsec / 1000000LL;
+    last_write_ms = last_read_ms;
 
     if(argc != 4){
         LOG("Usage: %s [log_file] [fifo_in] [goal_file]\n", argv[0]);
