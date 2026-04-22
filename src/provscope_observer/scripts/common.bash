@@ -1,6 +1,6 @@
 #!/bin/bash
 
-PROJECT_NAME=ipc_analyzer
+PROJECT_NAME=provscope_observer
 
 CLOSE_STDIN= 0<&-
 

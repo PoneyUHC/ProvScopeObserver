@@ -5,7 +5,7 @@ import time
 
 import subprocess
 
-from ipc_analyzer.utils import EndProcessWatcher
+from provscope_observer.utils import EndProcessWatcher
 
 ERR_BAD_ARG = 1
 

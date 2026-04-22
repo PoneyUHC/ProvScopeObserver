@@ -15,7 +15,7 @@ if [ $# -lt 1 ]
 fi
 
 ssh -t $DIST_VM_USER@$DIST_VM_ADDR "rm -rf ~/${PROJECT_NAME} && mkdir -p ~/${PROJECT_NAME}/"
-scp -r ~/ipc-analyzer/* $DIST_VM_USER@$DIST_VM_ADDR:~/${PROJECT_NAME}
+scp -r ~/ProvScopeObserver/* $DIST_VM_USER@$DIST_VM_ADDR:~/${PROJECT_NAME}
 
 ssh -t $DIST_VM_USER@$DIST_VM_ADDR "cd ~/${PROJECT_NAME} && python3 -m venv venv && source ./venv/bin/activate && pip install -e . && ~/${PROJECT_NAME}/${SCRIPTS_DIR}/run.bash ${n_exec} ${wait_time}"
 

@@ -1,6 +1,6 @@
 
-from ipc_analyzer.present_result.ipca_globals import GlobalModel, Process, Resource, ParsingResult, OpenEvent, ResourceType
-from ipc_analyzer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, get_bpftrace_map
+from provscope_observer.present_result.ProvScopeGlobals import GlobalModel, Process, Resource, ParsingResult, OpenEvent, ResourceType
+from provscope_observer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, get_bpftrace_map
 
 
 N_INFOS = 8

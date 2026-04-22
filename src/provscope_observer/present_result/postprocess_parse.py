@@ -1,6 +1,6 @@
 
 import os
-from ipc_analyzer.present_result.ipca_globals import CloseEvent, EnterReadEvent, ExitReadEvent, OpenEvent, Resource, ResourceType, GlobalModel, WriteEvent
+from provscope_observer.present_result.ProvScopeGlobals import CloseEvent, EnterReadEvent, ExitReadEvent, OpenEvent, Resource, ResourceType, GlobalModel, WriteEvent
 
 
 def add_stdios():

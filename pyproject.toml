@@ -1,6 +1,6 @@
 [project]
-name = "ipc_analyzer"
-description = "IPC analyzing tools for GNU/Linux"
+name = "provscope_observer"
+description = "Complex inter-process systems analyzing tool for GNU/Linux"
 version = "0.1.0"
 authors = [
     { name = "PoneyUHC", email = "uhc.contact@laposte.net" }

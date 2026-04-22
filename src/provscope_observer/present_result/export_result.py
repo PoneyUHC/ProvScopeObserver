@@ -2,14 +2,14 @@ import sys
 import os
 import time
 
-from ipc_analyzer.present_result.parse_logs.parse_openat import parse_bpf_openat_logs
-from ipc_analyzer.present_result.parse_logs.parse_close import parse_bpf_close_logs
-from ipc_analyzer.present_result.parse_logs.parse_read import parse_bpf_read_logs
-from ipc_analyzer.present_result.parse_logs.parse_write import parse_bpf_write_logs
+from provscope_observer.present_result.parse_logs.parse_openat import parse_bpf_openat_logs
+from provscope_observer.present_result.parse_logs.parse_close import parse_bpf_close_logs
+from provscope_observer.present_result.parse_logs.parse_read import parse_bpf_read_logs
+from provscope_observer.present_result.parse_logs.parse_write import parse_bpf_write_logs
 
-from ipc_analyzer.present_result.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events, add_color_information
+from provscope_observer.present_result.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events, add_color_information
 
-from ipc_analyzer.present_result.ipca_globals import Entity, Event, GlobalModel, IPCAModel, Process, Resource
+from provscope_observer.present_result.ProvScopeGlobals import Entity, Event, GlobalModel, ProvScopeModel, Process, Resource
 
 import json
 from json import JSONEncoder
@@ -45,9 +45,9 @@ def serialize_event(event: Event):
     return serialized
 
 
-class IPCAModelEncoder(JSONEncoder):
+class ProvScopeModelEncoder(JSONEncoder):
     def default(self, o):
-        if isinstance(o, IPCAModel):
+        if isinstance(o, ProvScopeModel):
             return {
                 'processes': [p.__dict__ for p in o.processes],
                 'resources': [r.__dict__ for r in o.resources],
@@ -61,7 +61,7 @@ class IPCAModelEncoder(JSONEncoder):
                     
             }
         else:
-            print(f"[EXPORT - FATAL] Given object is not an IPCAModel: {o}")
+            print(f"[EXPORT - FATAL] Given object is not a ProvScopeModel: {o}")
             return None
 
 
@@ -97,7 +97,7 @@ def main():
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w") as f:
-        f.write(json.dumps(GlobalModel, indent=4, cls=IPCAModelEncoder))
+        f.write(json.dumps(GlobalModel, indent=4, cls=ProvScopeModelEncoder))
     
     export_time = time.time() - start
     print(f"Export completed in {export_time:.2f} seconds")

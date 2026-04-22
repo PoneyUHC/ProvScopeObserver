@@ -262,7 +262,7 @@ class WriteEvent(FSEvent):
         return str(self)
 
 
-class IPCAModel:
+class ProvScopeModel:
     def __init__(self):
         self.processes: List[Process] = []
         self.resources: List[Resource] = []
@@ -301,10 +301,10 @@ class IPCAModel:
         self.events.append(event)
 
     def __str__(self) -> str:
-        return f'IPCAModel(processes={self.processes}, resources={self.resources}, events={self.events})'
+        return f'ProvScopeModel(processes={self.processes}, resources={self.resources}, events={self.events})'
     
     def __repr__(self):
         return str(self)
     
 
-GlobalModel = IPCAModel()
+GlobalModel = ProvScopeModel()

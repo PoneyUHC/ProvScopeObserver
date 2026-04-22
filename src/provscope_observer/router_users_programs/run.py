@@ -3,7 +3,7 @@ import os
 import subprocess
 import time
 
-from ipc_analyzer.utils import EndProcessWatcher
+from provscope_observer.utils import EndProcessWatcher
 
 
 def start() -> list[subprocess.Popen]:
