@@ -36,7 +36,6 @@ def serialize_event(event: Event):
         "timestamp" : event.timestamp,
         "description" : event.description,
         "process" : serialize_lookup(event.process),
-        "other_entities" : [serialize_lookup(e) for e in event.other_entities],
         "source_entities" : [serialize_lookup(e) for e in event.source_entities],
         "target_entities" : [serialize_lookup(e) for e in event.target_entities],
         "input_values" : event.input_values,

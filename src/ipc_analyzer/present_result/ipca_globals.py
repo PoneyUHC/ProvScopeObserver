@@ -134,7 +134,6 @@ class Event:
         self.description: str = description
         self.process: Process = process
 
-        self.other_entities: List[Entity] = []
         self.source_entities: List[Entity] = [process]
         self.target_entities: List[Entity] = [process]
         self.input_values: Dict[str, Any] = {}
