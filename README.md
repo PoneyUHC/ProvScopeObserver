@@ -6,7 +6,8 @@
 ProvScope Observer is a GNU/Linux IPC tracing and analysis prototype. It runs
 small inter-process C systems, traces selected system calls with `bpftrace`, and
 exports a normalized JSON provenance model describing which processes interacted
-with which files, FIFOs, sockets, and standard streams.
+with which files, FIFOs, sockets, and standard streams. It is aimed to be used with 
+[ProvScope App](https://github.com/PoneyUHC/ProvScopeApp)
 
 The Python package name is `provscope_observer`.
 
