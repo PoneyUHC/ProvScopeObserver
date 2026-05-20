@@ -28,7 +28,7 @@ static char g_parse_buffer[PARSE_BUFFER_SIZE];
 static int g_parse_buffer_size = 0;
 
 static int read_timer_ms = 50;
-static int write_timer_ms = 200;
+static int write_timer_ms = 120;
 static long long last_read_ms = 0;
 static long long last_write_ms = 0;
 

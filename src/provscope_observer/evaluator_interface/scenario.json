@@ -2,7 +2,7 @@
 {
     "system_name": "programs",
     "system_executable": "programs/run.py",
-    "system_executable_args": ["15", "200000"],
+    "system_executable_args": ["3", "70000"],
     "system_processes": [
         "router.bin",
         "client.bin",

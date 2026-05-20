@@ -9,7 +9,7 @@ from provscope_observer.utils import EndProcessWatcher
 
 ERR_BAD_ARG = 1
 
-MIN_TALK_DELAY_MICROSECONDS = 200000
+MIN_TALK_DELAY_MICROSECONDS = 50000
 
 def start(n_clients: int, talk_delay_microsecond: int):
 
