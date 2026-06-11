@@ -73,7 +73,7 @@ tracepoint:syscalls:sys_exit_openat
     }
 
     // gather a user stack trace for this event
-    @ustacks[$id] = ustack(perf, 5);
+    @ustacks[$id] = ustack(perf, [USTACK_DEPTH]);
 }
 
 END

@@ -5,6 +5,9 @@ import sys
 from pathlib import Path
 
 
+USTACK_DEPTH = "8"
+
+
 def main(args: list[str]) -> None:
 
     for file in os.listdir('trace/templates'):
@@ -23,6 +26,8 @@ def main(args: list[str]) -> None:
             
             script_args = "config = {\n\tmax_map_keys = 65535;\n\tprint_maps_on_exit = 0;\n\tmax_strlen = 2048\n}\n\n"
             open_template = open_template.replace('[TEMPLATE_CONFIG]', script_args)
+
+            open_template = open_template.replace('[USTACK_DEPTH]', USTACK_DEPTH)
 
         with open(output_path, 'w') as fout:
             fout.write(open_template)
