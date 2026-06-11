@@ -2,6 +2,7 @@
 
 import os
 import sys
+from pathlib import Path
 
 
 def main(args: list[str]) -> None:
@@ -12,7 +13,7 @@ def main(args: list[str]) -> None:
 
         template_path = os.path.join('trace', 'templates', file)
         output_path = os.path.join('trace', 'run', 'scripts', file.replace('_template', ''))
-        
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     
         with open(template_path, 'r') as fin:
             open_template = fin.read()

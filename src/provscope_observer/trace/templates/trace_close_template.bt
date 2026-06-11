@@ -34,13 +34,26 @@ tracepoint:syscalls:sys_exit_close
     // Clean up per-pid temporary state
     delete(@close_id[pid]);
     delete(@fd[pid]);
+
+    // ----- USTACK GRATHERING -----
+    // load process symbols once while the process is up
+    if ( !@init[comm] ) {
+        @garbage[comm] = ustack(perf, 1);
+        print(@garbage[comm]);
+        @init[comm] = 1;
+    }
+
+    // gather a user stack trace for this event
+    @ustacks[$id] = ustack(perf, 5);
 }
 
 END
 {
     print(@close_events);
-
     clear(@close_events);
+
+    print(@ustacks);
+    clear(@ustacks);
 
     clear(@close_id);
     clear(@fd);

@@ -268,6 +268,7 @@ class ProvScopeModel:
         self.resources: List[Resource] = []
         self.events: List[FSEvent] = []
         self.ext_colors: Dict[str, str] = {}
+        self.ext_ustacks: Dict[Event, str] = {}
 
     def has_process(self, pid):
         for p in self.processes:

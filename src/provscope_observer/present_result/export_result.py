@@ -2,6 +2,7 @@ import sys
 import os
 import time
 
+from provscope_observer.present_result.parse_logs.parse_globals import EXT_USTACKS
 from provscope_observer.present_result.parse_logs.parse_openat import parse_bpf_openat_logs
 from provscope_observer.present_result.parse_logs.parse_close import parse_bpf_close_logs
 from provscope_observer.present_result.parse_logs.parse_read import parse_bpf_read_logs
@@ -42,13 +43,18 @@ def serialize_event(event: Event):
         "output_values" : event.output_values
     }
 
+    if EXT_USTACKS:
+        ustack = GlobalModel.ext_ustacks.get(event, None)
+        if ustack is not None:
+            serialized["ext_ustack"] = ustack
+
     return serialized
 
 
 class ProvScopeModelEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, ProvScopeModel):
-            return {
+            output = {
                 'processes': [p.__dict__ for p in o.processes],
                 'resources': [r.__dict__ for r in o.resources],
                 'events': [serialize_event(e) for e in o.events],
@@ -56,10 +62,18 @@ class ProvScopeModelEncoder(JSONEncoder):
                     {
                         "tag": "EXT_EVENT_COLOR",
                         "data": o.ext_colors
-                    }
-                ]
-                    
+                    },
+                ], 
             }
+
+            if EXT_USTACKS:
+                output['_extensions'].append({
+                    "tag": "EXT_EVENT_USTACK",
+                    "data": None
+                })
+            
+            return output
+
         else:
             print(f"[EXPORT - FATAL] Given object is not a ProvScopeModel: {o}")
             return None

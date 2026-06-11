@@ -1,5 +1,23 @@
+from provscope_observer.present_result.ProvScopeGlobals import Event, GlobalModel
+
+
 IGNORE_PATTERN = ['sleep', 'exec.bash', 'sudo', 'python3', 'DEBUG']
-SPLIT_PATTERN = "---"
+EXT_USTACKS = True
+
+
+def gather_ustacks(filename: str, events_by_id: dict[str, Event]) -> None:
+    ustacks_by_id = get_bpftrace_map(filename, key="@ustacks")
+    if ustacks_by_id is None:
+        print(f"[PARSE_GLOBALS - ERROR] Could not find @ustacks map in {filename}")
+        return
+    for id, event in events_by_id.items():
+        if id not in ustacks_by_id.keys():
+            print(f"[PARSE_GLOBALS - WARNING] Found user stack with id {id} but no corresponding event. Ignoring.")
+            continue
+
+        ustack = ustacks_by_id[id]
+        GlobalModel.ext_ustacks[event] = ustack
+
 
 def file_to_JSON_objects(filename: str) -> list[dict]:
     import json

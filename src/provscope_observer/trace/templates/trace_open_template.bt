@@ -26,6 +26,7 @@ tracepoint:syscalls:sys_enter_openat
     @access_mode[$id] = args->flags & O_ACCMODE;
 
     @vfs_open[pid] = $id;
+
 }
 
 kprobe:vfs_open
@@ -61,14 +62,28 @@ tracepoint:syscalls:sys_exit_openat
     delete(@mode[$id]);
     delete(@access_mode[$id]);
     delete(@type[$id]);
+
+
+    // ----- USTACK GRATHERING -----
+    // load process symbols once while the process is up
+    if ( !@init[comm] ) {
+        @garbage[comm] = ustack(perf, 1);
+        print(@garbage[comm]);
+        @init[comm] = 1;
+    }
+
+    // gather a user stack trace for this event
+    @ustacks[$id] = ustack(perf, 5);
 }
 
 END
 {
     print(@open_events);
     print(@filename);
-
     clear(@open_events);
+
+    print(@ustacks);
+    clear(@ustacks);
 
     clear(@open_id);
     clear(@mode);

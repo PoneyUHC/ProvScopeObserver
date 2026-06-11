@@ -54,6 +54,18 @@ tracepoint:syscalls:sys_exit_read
     delete(@fd_by_id[$id]);
     delete(@count_by_id[$id]);
     delete(@buf_ptr_by_id[$id]);
+
+
+    // ----- USTACK GRATHERING -----
+    // load process symbols once while the process is up
+    if ( !@init[comm] ) {
+        @garbage[comm] = ustack(perf, 1);
+        print(@garbage[comm]);
+        @init[comm] = 1;
+    }
+
+    // gather a user stack trace for this event
+    @ustacks[$id] = ustack(perf, 5);
 }
 
 
@@ -62,10 +74,12 @@ END
     print(@enter_events);
     print(@exit_events);
     print(@read_buf);
-
     clear(@enter_events);
     clear(@exit_events);
     clear(@read_buf);
+
+    print(@ustacks);
+    clear(@ustacks);
 
     clear(@read_event_id);
     clear(@fd_by_id);
