@@ -66,10 +66,10 @@ tracepoint:syscalls:sys_exit_openat
 
     // ----- USTACK GRATHERING -----
     // load process symbols once while the process is up
-    if ( !@init[comm] ) {
-        @garbage[comm] = ustack(perf, 1);
-        print(@garbage[comm]);
-        @init[comm] = 1;
+    if ( !@init[pid] ) {
+        @garbage[pid] = ustack(perf, 1);
+        print(@garbage[pid]);
+        @init[pid] = 1;
     }
 
     // gather a user stack trace for this event
