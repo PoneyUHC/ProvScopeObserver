@@ -1,7 +1,7 @@
 [project]
 name = "provscope_observer"
-description = "Complex inter-process systems analyzing tool for GNU/Linux"
-version = "0.1.0"
+description = "System-calls monitor and provenance trace generator for GNU/Linux"
+version = "0.2.0"
 authors = [
     { name = "PoneyUHC", email = "uhc.contact@laposte.net" }
 ]

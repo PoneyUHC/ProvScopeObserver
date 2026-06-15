@@ -15,7 +15,7 @@ The Python package name is `provscope_observer`.
 
 - Builds and launches example IPC systems written in C.
 - Generates `bpftrace` programs for selected process names.
-- Captures `openat`, `read`, `write`, and `close` events.
+- Captures `openat`, `read`, `write`, and `close` events, with their respective user stacks.
 - Parses raw bpftrace output into processes, resources, and events.
 - Normalizes timestamps and file-descriptor relationships.
 - Exports JSON reports under `src/provscope_observer/present_result/output/`.
