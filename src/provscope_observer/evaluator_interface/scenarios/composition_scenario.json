@@ -1,6 +1,6 @@
 {
-    "system_name": "router_users_programs",
-    "system_executable": "router_users_programs/run.py",
+    "system_name": "composition_system",
+    "system_executable": "systems/composition_system/run.py",
     "system_executable_args": [],
     "system_processes": [
         "router",
@@ -8,10 +8,10 @@
         "access"
     ],
     "targets": [
-        "router_users_programs/build/exec/run/fs/comms/fifo_comm_to_u1",
-        "router_users_programs/build/exec/run/fs/comms/fifo_comm_to_u2",
-        "router_users_programs/build/exec/run/fs/comms/fifo_comm_to_admin"
-        ],
+        "systems/composition_system/build/exec/run/fs/comms/fifo_comm_to_u1",
+        "systems/composition_system/build/exec/run/fs/comms/fifo_comm_to_u2",
+        "systems/composition_system/build/exec/run/fs/comms/fifo_comm_to_admin"
+    ],
     "test_cases": [
         {
           "name": "admin_changes_policy",

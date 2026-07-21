@@ -55,7 +55,7 @@ cleanup
 # wait for bpftrace processes to terminate and flush logs
 sleep 2
 
-for f in "${BPF_LOGS_DIR}"/*; do
+for f in "${BPF_LOGS_DIR}"/*.logs; do
     [ -f "$f" ] || continue
     if sed '1d' "$f" | jq . > "${f}.jqtmp" 2>/dev/null; then
         mv "${f}.jqtmp" "$f"
@@ -70,4 +70,4 @@ sleep 2
 
 # create report from logs
 echo "Exporting results to file ${REPORT_FILENAME}" 
-python3 ${SRC_DIR}/present_result/export_result.py ${REPORT_FILENAME}
+python3 ${SRC_DIR}/trace_export/export_result.py ${REPORT_FILENAME}

@@ -1,6 +1,6 @@
 
-from provscope_observer.present_result.ProvScopeGlobals import GlobalModel, ParsingResult, Process, EnterReadEvent, ExitReadEvent
-from provscope_observer.present_result.parse_logs.parse_globals import EXT_USTACKS, IGNORE_PATTERN, bpftrace_bufstr_to_bytestring, gather_ustacks, get_bpftrace_map
+from provscope_observer.trace_export.ProvScopeGlobals import GlobalModel, ParsingResult, Process, EnterReadEvent, ExitReadEvent
+from provscope_observer.trace_export.parse_logs.parse_globals import EXT_USTACKS, IGNORE_PATTERN, bpftrace_buffer_to_bytestring, gather_ustacks, get_bpftrace_map
 
 
 N_INFOS_ENTER = 5
@@ -81,7 +81,7 @@ def add_exit_to_model(event: tuple) -> tuple[int, ExitReadEvent | None]:
         content
     ) = event
 
-    content = bpftrace_bufstr_to_bytestring(content)
+    content = bpftrace_buffer_to_bytestring(content)
 
     if any(name == ignore for ignore in IGNORE_PATTERN):
         return ParsingResult.WARN_IGNORE_LINE, None

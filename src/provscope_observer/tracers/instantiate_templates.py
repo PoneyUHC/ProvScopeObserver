@@ -10,12 +10,12 @@ USTACK_DEPTH = "8"
 
 def main(args: list[str]) -> None:
 
-    for file in os.listdir('trace/templates'):
+    for file in os.listdir('tracers/templates'):
         if not file.endswith('_template.bt'):
             continue
 
-        template_path = os.path.join('trace', 'templates', file)
-        output_path = os.path.join('trace', 'run', 'scripts', file.replace('_template', ''))
+        template_path = os.path.join('tracers', 'templates', file)
+        output_path = os.path.join('tracers', 'run', 'scripts', file.replace('_template', ''))
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     
         with open(template_path, 'r') as fin:

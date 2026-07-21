@@ -1,6 +1,6 @@
 
-from provscope_observer.present_result.ProvScopeGlobals import GlobalModel, Process, ParsingResult, CloseEvent
-from provscope_observer.present_result.parse_logs.parse_globals import IGNORE_PATTERN, EXT_USTACKS, gather_ustacks, get_bpftrace_map
+from provscope_observer.trace_export.ProvScopeGlobals import GlobalModel, Process, ParsingResult, CloseEvent
+from provscope_observer.trace_export.parse_logs.parse_globals import IGNORE_PATTERN, EXT_USTACKS, gather_ustacks, get_bpftrace_map
 
 
 N_INFOS = 5

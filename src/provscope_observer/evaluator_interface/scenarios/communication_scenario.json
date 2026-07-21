@@ -1,7 +1,7 @@
 
 {
-    "system_name": "programs",
-    "system_executable": "programs/run.py",
+    "system_name": "communication_system",
+    "system_executable": "systems/communication_system/run.py",
     "system_executable_args": ["3", "70000"],
     "system_processes": [
         "router.bin",

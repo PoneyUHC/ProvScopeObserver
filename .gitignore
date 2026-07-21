@@ -11,7 +11,7 @@ build/
 venv/
 
 __pycache__/
-**/output/
+output/
 
 my_instance.inst
 my_solution.sol

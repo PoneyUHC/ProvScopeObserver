@@ -2,15 +2,15 @@ import sys
 import os
 import time
 
-from provscope_observer.present_result.parse_logs.parse_globals import EXT_USTACKS
-from provscope_observer.present_result.parse_logs.parse_openat import parse_bpf_openat_logs
-from provscope_observer.present_result.parse_logs.parse_close import parse_bpf_close_logs
-from provscope_observer.present_result.parse_logs.parse_read import parse_bpf_read_logs
-from provscope_observer.present_result.parse_logs.parse_write import parse_bpf_write_logs
+from provscope_observer.trace_export.parse_logs.parse_globals import EXT_USTACKS
+from provscope_observer.trace_export.parse_logs.parse_openat import parse_bpf_openat_logs
+from provscope_observer.trace_export.parse_logs.parse_close import parse_bpf_close_logs
+from provscope_observer.trace_export.parse_logs.parse_read import parse_bpf_read_logs
+from provscope_observer.trace_export.parse_logs.parse_write import parse_bpf_write_logs
 
-from provscope_observer.present_result.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events, add_color_information
+from provscope_observer.trace_export.postprocess_parse import add_stdios, normalize_events, normalize_timestamps, sort_events, add_color_information
 
-from provscope_observer.present_result.ProvScopeGlobals import Entity, Event, GlobalModel, ProvScopeModel, Process, Resource
+from provscope_observer.trace_export.ProvScopeGlobals import Entity, Event, GlobalModel, ProvScopeModel, Process, Resource
 
 import json
 from json import JSONEncoder
@@ -91,10 +91,10 @@ def main():
     
     start = time.time()
 
-    parse_bpf_openat_logs(f"{root_dir}/trace/run/logs/trace_open.logs")
-    parse_bpf_close_logs(f"{root_dir}/trace/run/logs/trace_close.logs")
-    parse_bpf_read_logs(f"{root_dir}/trace/run/logs/trace_read.logs")
-    parse_bpf_write_logs(f"{root_dir}/trace/run/logs/trace_write.logs")
+    parse_bpf_openat_logs(f"{root_dir}/tracers/run/logs/trace_open.logs")
+    parse_bpf_close_logs(f"{root_dir}/tracers/run/logs/trace_close.logs")
+    parse_bpf_read_logs(f"{root_dir}/tracers/run/logs/trace_read.logs")
+    parse_bpf_write_logs(f"{root_dir}/tracers/run/logs/trace_write.logs")
 
     GlobalModel.events = list(filter(lambda e: e.event_type != "EnterReadEvent", GlobalModel.events))
 
@@ -107,7 +107,7 @@ def main():
     normalization_time = time.time() - start
     print(f"Normalization completed in {normalization_time:.2f} seconds")
 
-    output_path = f"{root_dir}/present_result/output/{out_filename}"
+    output_path = f"{root_dir}/output/{out_filename}"
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     with open(output_path, "w") as f:

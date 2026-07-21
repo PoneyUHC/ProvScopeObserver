@@ -147,16 +147,6 @@ def parse_scenario(scenario_file_path : str) -> Optional[TestScenario]:
     return scenario
 
 
-def hex_payload_to_bytes(payload: str) -> bytes:
-    """
-    Convert hex payload (format: "63.68.6f.6f...") to bytes.
-    """
-    # Remove dots and underscores (IGNORE_CHARS)
-    hex_chars = payload.replace(".", "").replace("_", "")
-    # Convert to bytes
-    return bytes.fromhex(hex_chars)
-
-
 def interpret_payload_to_bytes(p: str) -> bytes:
     """Interpret a payload given in several possible formats:
     - continuous hex string like "6368656c6c6f0a"
@@ -234,7 +224,7 @@ def create_test_case_script(test_case_name: str, test_case_data: dict, targets: 
     return temp_script.name
 
 
-def run_test_cases_with_run_bash(evaluator_actions_file: str):
+def run_test_cases(evaluator_actions_file: str):
     """
     Read evaluator_actions.json, create temporary scripts for each test_case,
     and call run.bash for each test_case.
@@ -293,15 +283,9 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
         # fallback: use basename of system_executable without extension
         system_name = os.path.splitext(os.path.basename(system_executable))[0]
 
-    # Ensure the present_result output directory exists: present_result/output/{system_name}
+    # Ensure the trace_export output directory exists: trace_export/output/{system_name}
     report_dir = os.path.join(system_name)
-    try:
-        os.makedirs(report_dir, exist_ok=True)
-    except Exception as e:
-        print(f"Warning: could not create report dir {report_dir}: {e}")
-    
     temp_scripts = []  # Keep track of temp script files for cleanup
-
 
     try:
         if len(test_cases) == 0:
@@ -311,7 +295,6 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
             temp_script_path = create_empty_script()
             temp_scripts.append(temp_script_path)
 
-            # Assemble a report filename under present_result/output/{system_name}
             report_path = os.path.join(report_dir, test_case_name)
             
             # Call run.bash with: 1 {report_path} 3 {temp_script} {system_executable}
@@ -338,7 +321,7 @@ def run_test_cases_with_run_bash(evaluator_actions_file: str):
                 temp_script_path = create_test_case_script(test_case_name, test_case, targets, evaluator_actions_file)
                 temp_scripts.append(temp_script_path)
 
-                # Assemble a report filename under present_result/output/{system_name}
+                # Assemble a report filename under trace_export/output/{system_name}
                 report_path = os.path.join(report_dir, test_case_name)
                 
                 # Call run.bash with: 1 {report_path} 3 {temp_script} {system_executable}
@@ -383,7 +366,7 @@ def main():
     scenario_file_path = argv[1]
     
     
-    run_test_cases_with_run_bash(scenario_file_path)
+    run_test_cases(scenario_file_path)
 
 if __name__ == "__main__":
     main()
