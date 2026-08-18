@@ -1,0 +1,345 @@
+
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/epoll.h>
+#include <errno.h>
+
+#include "common.h"
+
+
+#define PATH_MAX_LEN 256
+#define IN_BUFFER_MAX_SIZE 512
+#define OUT_BUFFER_MAX_SIZE 512
+#define LOG_BUFFER_SIZE 517
+
+static int* g_STATE_destinations;
+
+static int g_n_targets;
+static int *g_out_fds;
+static int *g_in_fds;
+static int g_log_fd;
+
+static char g_in_msg[IN_BUFFER_MAX_SIZE];
+static int g_in_msg_size;
+static int g_in_packet_size;
+
+static char g_out_msg[OUT_BUFFER_MAX_SIZE];
+
+static char g_log_buffer[LOG_BUFFER_SIZE];
+
+
+#define ERR_MSG_TOO_SHORT 3
+#define ERR_INVALID_SELECTOR_VALUE 4
+
+
+
+int API_select_destination(int in_fd)
+{
+    if(g_in_packet_size < 16){
+        read(in_fd, g_in_msg, g_in_packet_size - 8);
+        LOG("Message too short\n");
+        return ERR_MSG_TOO_SHORT;
+    }
+
+    int client_id = 0;
+    int n_read = read(in_fd, &client_id, 4);
+    int err = usual_read_errors(n_read);
+    if(err){
+        return err;
+    }
+
+    int tmp_destination = 0;
+    n_read = read(in_fd, &tmp_destination, 4);
+    err = usual_read_errors(n_read);
+    if(err){
+        return err;
+    }
+
+    g_STATE_destinations[client_id] = tmp_destination;
+
+    LOG("Destination set to %d for client %d\n", tmp_destination, client_id);
+    return 0;
+}
+
+
+int API_send_message(int in_fd)
+{
+    int client_id = 0;
+    int n_read = read(in_fd, &client_id, 4);
+    int err = usual_read_errors(n_read);
+    if(err){
+        LOG("Error reading client_id\n");
+        return err;
+    }
+
+    int out_fd = g_out_fds[g_STATE_destinations[client_id]];
+
+    n_read = read(in_fd, g_in_msg, g_in_packet_size - 12);
+    err = usual_read_errors(n_read);
+    if(err){
+        LOG("Packet size and message don't match\n");
+        return err;
+    }
+
+    LOG("Sending message '%s' to %d\n", g_in_msg, g_STATE_destinations[client_id]);
+
+    ((int*)g_out_msg)[0] = g_in_msg_size;
+    strcpy(g_out_msg + 4, g_in_msg);
+    write(out_fd, g_out_msg, g_in_msg_size + 4);
+
+    snprintf(g_log_buffer, LOG_BUFFER_SIZE, "%02d,%02d,%s\n", client_id, g_STATE_destinations[client_id], g_in_msg);
+    write(g_log_fd, g_log_buffer, 6 + g_in_msg_size);
+    
+    return 0;
+}
+
+
+int parse_API_function_selection(int in_fd, int *out_selected)
+{
+    int n_read = read(in_fd, out_selected, 4);
+    int err = usual_read_errors(n_read);
+    if(err){
+        return err;
+    }
+
+    if(*out_selected != 0 && *out_selected != 1)  {
+        LOG("Invalid selector value\n");
+        return ERR_INVALID_SELECTOR_VALUE;
+    }
+
+    return 0;
+}
+
+
+int parse_packet_size(int in_fd)
+{
+    int n_read = read(in_fd, &g_in_packet_size, 4);
+    int err = usual_read_errors(n_read);
+    if(err){
+        return err;
+    }
+
+    if(g_in_packet_size < 13){
+        // empty rest of ill formed message
+        read(in_fd, g_in_msg, g_in_packet_size - 4);
+        return ERR_MSG_TOO_SHORT;
+    }
+
+    g_in_msg_size = g_in_packet_size - 12;
+
+    return 0;
+}
+
+
+int dispatch_API_call(int function_id, int in_fd)
+{
+    switch(function_id){
+        case 0:
+            return API_select_destination(in_fd);
+        case 1:
+            return API_send_message(in_fd);
+        default:
+            LOG("Wrong selector value\n");
+            return 1;
+    }
+}
+
+
+int consume_token(int in_fd)
+{
+    int err;
+    int selector;
+
+    LOG("Reading input fifo\n");
+
+    err = parse_packet_size(in_fd);
+    if(err){
+        if(err == ERR_MSG_TOO_SHORT){
+            LOG("Message too short\n");
+        }
+        return 1;
+    }
+
+    err = parse_API_function_selection(in_fd, &selector);
+    if(err){
+        if(err == ERR_INVALID_SELECTOR_VALUE){
+            LOG("Incorrect function selector\n");
+        }
+        return 1;
+    }
+
+    err = dispatch_API_call(selector, in_fd);
+    if(err){
+        LOG("Error when dispatching call\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+
+void loop() 
+{
+    int ep = make_epoll(g_in_fds, g_n_targets);
+    if (ep < 0) {
+        LOG("Issue when creating epoll\n");
+        return;
+    }
+
+    LOG("Entering main loop\n");
+
+    while(1){
+        struct epoll_event events[8];
+        int n = epoll_wait(ep, events, 8, -1);
+        if (n < 0) {
+            if (errno == EINTR) continue;
+            LOG("Error on epoll wait\n");
+            break;
+        }
+        for(int i=0; i<n; ++i){
+            int idx = events[i].data.u32;
+            int fd  = g_in_fds[idx];
+
+            if (events[i].events & EPOLLIN) {
+                LOG("Event on port %d\n", idx);
+                consume_token(fd);
+            }
+        }
+    }
+}
+
+
+void cleanup()
+{
+    close(g_log_fd);
+
+    for(int i=0; i<g_n_targets; ++i){
+        close_fifo(g_out_fds[i]);
+        close_fifo(g_in_fds[i]);
+    }
+    free(g_in_fds); 
+    free(g_out_fds);
+}
+
+
+int open_log_file(char* argv[]) 
+{
+    g_log_fd = open(argv[2], O_WRONLY | O_CREAT, S_IRWXU);
+    if(g_log_fd == -1){
+        LOG("Could not open file %s\n", argv[2]);
+        return 2;
+    }
+
+    return 0;
+}
+
+
+int create_fifos(char* argv[]) 
+{
+    int err;
+    for(int i=0; i<2*g_n_targets; ++i){
+        err = create_fifo(argv[3+i]);
+        if(err){
+            LOG("Could not create fifo %s\n", argv[3+i]);
+            return 2;
+        }
+    }
+
+    return 0;
+}
+
+
+int open_out_fifos(char* argv[]) 
+{
+    for(int i=0; i<g_n_targets; ++i){
+        g_out_fds[i] = open(argv[3+g_n_targets+i], O_WRONLY);
+        if(g_out_fds[i] == -1){
+            LOG("Could not open fifo %s\n", argv[3+g_n_targets+i]);
+            return 2;
+        }
+    }
+
+    return 0;
+}
+
+
+int open_in_fifos_non_blocking(char* argv[]) 
+{
+    for(int i=0; i<g_n_targets; ++i){
+        g_in_fds[i] = open(argv[3+i], O_RDONLY);
+        if(g_in_fds[i] == -1){
+            LOG("Could not open fifo %s\n", argv[3+i]);
+            return 2;
+        }
+    }
+
+    for(int i=0; i<g_n_targets; ++i){
+        int flags = fcntl(g_in_fds[i], F_GETFL, 0);
+        fcntl(g_in_fds[i], F_SETFL, flags | O_NONBLOCK);
+    }
+
+    return 0;
+}
+
+
+
+int main(int argc, char *argv[])
+{
+    setvbuf(stdout, NULL, _IONBF, 0);
+
+    g_in_fds = NULL;
+    g_out_fds = NULL;
+    
+    g_log_fd = -1;
+
+    if(argc < 4) {
+        LOG("Usage: %s [n_targets] [log_filename] [fifo_in]* [fifo_out]*\n", argv[0]);
+        return 1;
+    }
+
+    g_n_targets = atoi(argv[1]);
+    if(g_n_targets < 2){
+        LOG("Number of targets must be at least 2\n");
+        return 1;
+    }
+
+    g_in_fds = (int*) malloc(g_n_targets * sizeof(int));
+    g_out_fds = (int*) malloc(g_n_targets * sizeof(int));
+    
+    g_STATE_destinations = malloc(100 * sizeof(int));
+    for(int i=0; i<100; ++i) {
+        // default is you speak to yourself
+        g_STATE_destinations[i] = i;
+    }
+
+    if(argc != 3+2*g_n_targets){
+        LOG("Usage: %s [n_targets] [log_filename] [fifo_in]* [fifo_out]* \n", argv[0]);
+        return 1;
+    }
+
+    
+    for(int i=2; i<3+2*g_n_targets; ++i){
+        if(strlen(argv[i]) >= PATH_MAX_LEN){
+            LOG("File path too long : %s\n", argv[i]);
+            return 1;
+        }
+    }
+
+    
+    if (open_log_file(argv)) cleanup();
+    if (create_fifos(argv)) cleanup();
+    if (open_out_fifos(argv)) cleanup();
+    if (open_in_fifos_non_blocking(argv)) cleanup();
+
+
+    loop();
+
+    cleanup();
+
+    return 0;
+}
