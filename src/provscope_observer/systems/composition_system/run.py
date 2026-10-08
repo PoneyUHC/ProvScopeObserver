@@ -116,9 +116,9 @@ def start() -> list[subprocess.Popen]:
 
     print('Starting admin')
     with open(os.path.join(LOGS_DIR, 'admin.logs'), 'w') as fout:
-        # user 2 tries to access without auth, then wrong password, then correct
-        u2_proc = subprocess.Popen([user_bin, fifo_admin_to_router, fifo_router_admin, fifo_comm_to_admin], stdout=fout)
-        procs.append(u2_proc)
+        # admin provides uid 3 and correct password
+        admin_proc = subprocess.Popen([user_bin, fifo_admin_to_router, fifo_router_admin, fifo_comm_to_admin], stdout=fout)
+        procs.append(admin_proc)
 
     print('Done.')
     return procs
